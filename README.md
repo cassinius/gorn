@@ -1,37 +1,20 @@
-## Welcome to GitHub Pages
+## Welcome to Gorn - the angst-inducingly powerful graph ORM
 
-You can use the [editor on GitHub](https://github.com/cassinius/gorn/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+<img style="float: right;" src="docs/img/mascot.jpg" alt="gorn logo">
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+This project attempts to build a modern TS/decorator-based ORM for ArangoDB.
 
-### Markdown
+It will provide @decorators to instantiate Arango
+* Nodes (Document collection)
+* Edges (Edge collection)
+* Graphs (Graph)
+* Views (ArangoSearchView)
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+as well as configuration objects to configure their connectivity & search views.
 
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/cassinius/gorn/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+Best of all, we are introducing behavioral decorators, like
+* @Hierarchical (nodes of this type have parents / children & can e.g. lookup their siblings with one method call ;-)
+* @Heterarchical nodes (find all friends with certain traits within a distance of *min/max*
+* @Bipartite nodes (e.g. @Bipartite({nodes: 'authors', others: 'papers'})
+* @Preferences regarding traversal behavior (e.g. @BFS, @DFS or @Closeness({nodes: ['people', 'companies']}))
+  
