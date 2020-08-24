@@ -78,9 +78,9 @@ export function getSubSuperQuery(
 
     FOR v, e, p IN @close..@far ${direction}
       d
-      @edges
-    LIMIT ${LIMIT_RETURN_SET}
+      ${edges}
 
+    LIMIT ${LIMIT_RETURN_SET}
     RETURN DISTINCT v
   `;
   return {
@@ -88,8 +88,7 @@ export function getSubSuperQuery(
     bindVars: {
       uuids,
       close,
-      far,
-      edges
+      far
     }
   }
 }

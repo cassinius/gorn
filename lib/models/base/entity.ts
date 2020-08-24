@@ -249,8 +249,10 @@ export class Entity implements BaseEntity {
    */
   static async execQuery(query) {
     // await this.ready();
-    const ftQuery = await this._db.conn.query(query).catch(err);
-    return await ftQuery.all();
+    // console.debug('QUERY: ', query);
+    const cursor = await this._db.conn.query(query).catch(err);
+    // console.debug('CURSOR: ', cursor);
+    return await cursor.all();
   }
 
 }

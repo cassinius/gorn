@@ -88,7 +88,7 @@ export function Hierarchy<T extends typeof ArangoNode>(
       far: number
     ): Promise<T[]> {
       await this.ready();
-      const query = getSubSuperQuery(this._coll, config.edges, uuids, close, far);
+      const query = getSubSuperQuery(this._coll, config.edges, uuids, close ?? 1, far ?? 1);
       // console.log('SUB query: ', query);
       const results: any[] = await this.execQuery(query);
       return results.map(r => this.fromArangoStruct(r));
@@ -106,7 +106,7 @@ export function Hierarchy<T extends typeof ArangoNode>(
       far: number
     ): Promise<T[]> {
       await this.ready();
-      const query = getSubSuperQuery(this._coll, config.edges, uuids, close, far, false);
+      const query = getSubSuperQuery(this._coll, config.edges, uuids, close ?? 1, far ?? 1, false);
       // console.log('SUPER query: ', query);
       const results: any[] = await this.execQuery(query);
       return results.map(r => this.fromArangoStruct(r));
