@@ -12,10 +12,10 @@ import { DOC, getSearchTextBlock } from "./miscQ";
  *
  * @todo fulltext as slow as filter ??
  */
-export function labelQuery(coll: Nodege, label_field: string, label: string) {
+export function labelQuery(coll: Nodege, labelField: string, label: string) {
   return aql`
     FOR d IN ${coll}
-    FILTER d.${label_field} == ${label}
+    FILTER d.${labelField} == ${label}
     LIMIT 1
     RETURN d
   `;

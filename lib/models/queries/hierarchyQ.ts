@@ -1,4 +1,3 @@
-import { aql } from "arangojs";
 import { ArangoUnit, AqlQueryStruct } from "../../types/arangoTypes";
 import { ArangoSearchView } from "arangojs/view";
 import { getSearchTextBlock } from "./miscQ";
@@ -35,9 +34,9 @@ export function getSiblingsQuery(
   uuids: string[],
   levels: number
 ) {
-  return aql`
-    FOR d IN ${nodes}
-    FILTER d._key IN ${uuids}
+  const query = `
+    FOR d IN ${nodes.name}
+    FILTER d._key IN @uuids
     LIMIT 1
     
     FOR base, e_up, p_up IN 1..1 OUTBOUND
@@ -52,6 +51,13 @@ export function getSiblingsQuery(
     
     RETURN LAST(p_down.vertices)
   `;
+
+  return {
+    query,
+    bindVars: {
+      uuids
+    }
+  }
 }
 
 /**

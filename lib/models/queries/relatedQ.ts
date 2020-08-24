@@ -1,4 +1,3 @@
-import { aql } from "arangojs";
 import { DocumentCollection } from "arangojs/collection"
 import { AqlQueryStruct } from "../../types/arangoTypes";
 import { ArangoSearchView } from "arangojs/view";
@@ -19,17 +18,25 @@ export function relGetQuery(
   uuids: string[],
   dist: number
 ) {
-  return aql`
-    FOR d IN ${nodes}
-    FILTER d._key IN ${uuids}
+  const query = `
+    FOR d IN ${nodes.name}
+    FILTER d._key IN @uuids
     LIMIT 1
 
-    FOR v, e, p IN 1..${dist} ANY
+    FOR v, e, p IN 1..@dist ANY
       d
       ${edges}
     LIMIT ${LIMIT_RETURN_SET}
     RETURN DISTINCT v
   `;
+
+  return {
+    query,
+    bindVars: {
+      uuids,
+      dist
+    }
+  }
 }
 
 /**

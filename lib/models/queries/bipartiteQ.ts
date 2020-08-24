@@ -1,4 +1,3 @@
-import { aql } from "arangojs";
 import { DocumentCollection } from "arangojs/collection";
 import { ArangoSearchView } from "arangojs/view";
 import { DOC, getSearchTextBlock } from "./miscQ";
@@ -30,18 +29,26 @@ export function getOtherQuery(
 ) {
   const limit = Math.min(DEFAULT_LIMIT, uuids.length);
 
-  return aql`
-    FOR d IN ${nodes}
-    FILTER d._key IN ${uuids}
+  const query = `
+    FOR d IN ${nodes.name}
+    FILTER d._key IN @uuids
     LIMIT ${limit}
     
-    FOR v, e, p IN ${dist}..${dist} ANY 
-    d
-    ${edges}
+    FOR v, e, p IN @dist..@dist ANY 
+      d
+      ${edges}
     LIMIT 30
 
     RETURN DISTINCT v
   `;
+
+  return {
+    query,
+    bindVars: {
+      uuids,
+      dist
+    }
+  }
 }
 
 /**
@@ -65,8 +72,8 @@ export function getPeerQuery(
     LIMIT ${limit}
     
     FOR o, e, p IN @dist..@dist ANY 
-    d
-    @edges
+      d
+      ${edges}
     LIMIT 30
 
     COLLECT
@@ -86,7 +93,6 @@ export function getPeerQuery(
   return {
     query,
     bindVars: {
-      edges,
       uuids,
       dist
     },
