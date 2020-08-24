@@ -1,7 +1,7 @@
 import { ArangoSearchView } from "arangojs/view";
-import { ArangoUnit, ArangoDBStruct, CollType } from "../../types/arangoTypes";
+import { ArangoDBStruct, CollType, Nodege } from "../../types/arangoTypes";
 import { BaseEntity } from "../../types/baseTypes";
-import { getQuery, findQuery, labelQuery } from "../queries/entityQ";
+import { createQuery, getQuery, findQuery, labelQuery } from "../queries/entityQ";
 import { getDBStruct } from "../../db/instantiateDB";
 import { err } from "../../helpers/misc";
 
@@ -31,7 +31,7 @@ export class Entity implements BaseEntity {
    * in beforehand.
    */
   protected static _db: ArangoDBStruct;
-  protected static _coll: ArangoUnit;
+  protected static _coll: Nodege;
   protected static _type: CollType;
   protected static _searchView: ArangoSearchView;
   /**
@@ -47,6 +47,9 @@ export class Entity implements BaseEntity {
   // that don't return the whole object
   protected static _retAttrs: string[];
 
+  //------------------------------------------------------------
+  //                 GETTERS (dynamic *this*)
+  //------------------------------------------------------------
 
   /**
    * @example "inodisDB", "lemontigerDB", ...
@@ -108,49 +111,6 @@ export class Entity implements BaseEntity {
    */
   public static get RETATT(): string[] {
     return this._retAttrs;
-  }
-
-  /**
-   * The <T> allows us to at least correctly 
-   * interpret the result from the outside..
-   */
-  toJson<T>() {
-    return this._entity as T;
-  }
-
-  /**
-   * We include the (uuid) key in our internal
-   * entity representation or consumption by the API
-   *
-   * @todo do we need the generics? it seems the `new this()`
-   *       determines the return value anyways, when called
-   *       via `this.fromArangoStruct`..
-   */
-  static fromArangoStruct<T extends Entity>(ae: BaseEntity): T {
-    const entity = new this();
-    const { _id, _rev, ...rest } = ae;
-    entity._id = _id;
-    entity._rev = _rev;
-    entity._key = ae._key;
-    entity._entity = rest;
-    return entity as T;
-  }
-
-  /**
-   * Ensures the ._db & ._coll members are set correctly
-   * before attempting any DB operations
-   * 
-   * @todo this._db should be the instantiated & valid db struct
-   *       for whatever application...
-   */
-  static async ready() {
-    this._db = await getDBStruct(this.DB);
-    // set the search view for 'this'
-    this._searchView = this._db.views[this.viewStr];
-    // set the DB collection for 'this'
-    if (!this._coll && this.Type && this.Class) {
-      this._coll = this._db[this.Type][this.Class];
-    }
   }
 
   //------------------------------------------------------------
@@ -218,8 +178,68 @@ export class Entity implements BaseEntity {
     return results.map(res => this.fromArangoStruct(res));
   }
 
+
+  //------------------------------------------------------------
+  //                        CREATE
+  //------------------------------------------------------------
+
+  static async create<T extends Entity, D extends {}>(data: D): Promise<T> {
+    await this.ready();
+    const query = await createQuery(this._coll, data);
+    const newDoc: T = await this.execQuery(query);
+    return newDoc;
+  }
+
+
+
+  //------------------------------------------------------------
+  //                    JUST ENGINEERING...
+  //------------------------------------------------------------
+
   /**
+   * The <T> allows us to at least correctly 
+   * interpret the result from the outside..
+   */
+  toJson<T>() {
+    return this._entity as T;
+  }
+
+  /**
+   * We include the (uuid) key in our internal
+   * entity representation or consumption by the API
    *
+   * @todo do we need the generics? it seems the `new this()`
+   *       determines the return value anyways, when called
+   *       via `this.fromArangoStruct`..
+   */
+  static fromArangoStruct<T extends Entity>(ae: BaseEntity): T {
+    const entity = new this();
+    const { _id, _rev, ...rest } = ae;
+    entity._id = _id;
+    entity._rev = _rev;
+    entity._key = ae._key;
+    entity._entity = rest;
+    return entity as T;
+  }
+
+  /**
+   * Ensures the ._db & ._coll members are set correctly
+   * before attempting any DB operations
+   * 
+   * @todo this._db should be the instantiated & valid db struct
+   *       for whatever application...
+   */
+  static async ready() {
+    this._db = await getDBStruct(this.DB);
+    // set the search view for 'this'
+    this._searchView = this._db.views[this.viewStr];
+    // set the DB collection for 'this'
+    if (!this._coll && this.Type && this.Class) {
+      this._coll = this._db[this.Type][this.Class];
+    }
+  }
+
+  /**
    * `this` only properly works when execQuery is called
    * on a sub-class (e.g. Skill.execQuery), otherwise
    * this.Type & this.Class will be undefined...

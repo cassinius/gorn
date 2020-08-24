@@ -1,5 +1,5 @@
 import { aql } from "arangojs";
-import { ArangoUnit } from "../../types/arangoTypes";
+import { Nodege } from "../../types/arangoTypes";
 import { ArangoSearchView } from "arangojs/view";
 import { DOC, getSearchTextBlock } from "./miscQ";
 
@@ -9,10 +9,10 @@ import { DOC, getSearchTextBlock } from "./miscQ";
  *
  * @param coll
  * @param label
- * 
- * @todo generalize to _label field...
+ *
+ * @todo fulltext as slow as filter ??
  */
-export function labelQuery(coll: ArangoUnit, label_field: string, label: string) {
+export function labelQuery(coll: Nodege, label_field: string, label: string) {
   return aql`
     FOR d IN ${coll}
     FILTER d.${label_field} == ${label}
@@ -27,7 +27,7 @@ export function labelQuery(coll: ArangoUnit, label_field: string, label: string)
  * @param uuids
  * @param limit
  */
-export function getQuery(coll: ArangoUnit, uuids: string[], limit: number) {
+export function getQuery(coll: Nodege, uuids: string[], limit: number) {
   return aql`
     FOR d IN ${coll}
     FILTER d._key IN ${uuids}
@@ -38,13 +38,12 @@ export function getQuery(coll: ArangoUnit, uuids: string[], limit: number) {
 
 /**
  *
+ * @param view
+ * @param attrs
+ * @param search
+ * @param limit
  */
-export const findQuery = (
-  view: ArangoSearchView,
-  attrs: string[],
-  search: string,
-  limit: number
-) => {
+export function findQuery(view: ArangoSearchView, attrs: string[], search: string, limit: number) {
   if (attrs == null || attrs.length === 0) {
     throw new Error("'attrs' argument must be a non-empty array of document attribute paths.");
   }
@@ -67,4 +66,17 @@ export const findQuery = (
       limit,
     },
   };
-};
+}
+
+/**
+ *
+ * @param nodes
+ * @param data
+ */
+export function createQuery<D extends {}>(nodes: Nodege, data: D) {
+  return aql`
+    INSERT ${data} INTO ${nodes}
+    OPTIONS { overwriteMode: "update", keepNull: true, mergeObjects: false }
+    RETURN NEW
+  `;
+}

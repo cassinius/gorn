@@ -11,6 +11,7 @@ export interface AqlQueryStruct {
   bindVars: { [key: string]: BindVars };
 }
 
+export type Nodege = DocumentCollection | EdgeCollection;
 export type ArangoUnit = DocumentCollection | EdgeCollection | Graph | ArangoSearchView;
 
 /**
