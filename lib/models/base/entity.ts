@@ -1,7 +1,7 @@
 import { ArangoSearchView } from "arangojs/view";
 import { ArangoDBStruct, CollType, Nodege } from "../../types/arangoTypes";
 import { BaseEntity } from "../../types/baseTypes";
-import { createQuery, getQuery, findQuery, labelQuery } from "../queries/entityQ";
+import { createQuery, getQuery, findQuery, labelQuery, allQuery } from "../queries/entityQ";
 import { getDBStruct } from "../../db/instantiateDB";
 import { err } from "../../helpers/misc";
 
@@ -113,6 +113,22 @@ export class Entity implements BaseEntity {
     return this._retAttrs;
   }
 
+
+  //------------------------------------------------------------
+  //                    BASICS
+  //------------------------------------------------------------
+
+  static async count(): Promise<number> {
+    await this.ready();
+    return await (await this._coll.count()).count;
+  }
+
+  static async all<T extends Entity>(): Promise<T> {
+    await this.ready();
+    const results = await this.execQuery(allQuery(this._coll));
+    return results;
+  }
+
   //------------------------------------------------------------
   //                    GET-> BY LABEL
   //------------------------------------------------------------
@@ -186,8 +202,8 @@ export class Entity implements BaseEntity {
   static async create<T extends Entity, D extends {}>(data: D): Promise<T> {
     await this.ready();
     const query = await createQuery(this._coll, data);
-    const newDoc: T = await this.execQuery(query);
-    return newDoc;
+    const newDocData: BaseEntity[] = await this.execQuery(query);
+    return this.fromArangoStruct(newDocData[0]) as T;
   }
 
 
@@ -213,13 +229,13 @@ export class Entity implements BaseEntity {
    *       via `this.fromArangoStruct`..
    */
   static fromArangoStruct<T extends Entity>(ae: BaseEntity): T {
-    const entity = new this();
+    const entity = new this() as T;
     const { _id, _rev, ...rest } = ae;
     entity._id = _id;
     entity._rev = _rev;
     entity._key = ae._key;
     entity._entity = rest;
-    return entity as T;
+    return entity;
   }
 
   /**

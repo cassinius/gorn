@@ -3,6 +3,12 @@ import { Nodege } from "../../types/arangoTypes";
 import { ArangoSearchView } from "arangojs/view";
 import { DOC, getSearchTextBlock } from "./miscQ";
 
+const HARD_LIMIT = 30;
+
+export function allQuery(coll: Nodege) {
+  return aql`FOR d IN ${coll} LIMIT ${HARD_LIMIT} RETURN d`;
+}
+
 /**
  * Since the DB might have no unique index on `label`, we
  * use a `LIMIT 1` directive to only fetch the first match
