@@ -123,10 +123,10 @@ export class Entity implements BaseEntity {
     return await (await this._coll.count()).count;
   }
 
-  static async all<T extends Entity>(): Promise<T> {
+  static async all<T extends Entity>(): Promise<T[]> {
     await this.ready();
     const results = await this.execQuery(allQuery(this._coll));
-    return results;
+    return results.map(res => this.fromArangoStruct(res));
   }
 
   //------------------------------------------------------------

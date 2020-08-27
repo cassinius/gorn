@@ -87,7 +87,7 @@ let DB: ArangoDBStruct = emptyDB;
  */
 export async function getDBStruct(db: ArangoDBStruct): Promise<ArangoDBStruct> {
   if (DB.conn) {
-    console.log("DB already instantiated.");
+    // console.log("DB already instantiated.");
     db = DB;
     return db;
   }
