@@ -1,7 +1,7 @@
 import { ArangoSearchView } from "arangojs/view";
 import { ArangoDBStruct, CollType, Nodege } from "../../types/arangoTypes";
-import { BaseEntity } from "../../types/baseTypes";
-import { createQuery, getQuery, findQuery, labelQuery, allQuery } from "../queries/entityQ";
+import { BaseEntity, Uuid } from "../../types/baseTypes";
+import { createQuery, getQuery, findQuery, labelQuery, allQuery, updateQuery } from "../queries/entityQ";
 import { getDBStruct } from "../../db/instantiateDB";
 import { err } from "../../helpers/misc";
 
@@ -196,16 +196,31 @@ export class Entity implements BaseEntity {
 
 
   //------------------------------------------------------------
-  //                        CREATE
+  //                 CREATE / UPDATE / DELETE
   //------------------------------------------------------------
 
+  /**
+   * 
+   * @param data 
+   */
   static async create<T extends Entity, D extends {}>(data: D): Promise<T> {
     await this.ready();
-    const query = await createQuery(this._coll, data);
+    const query = createQuery(this._coll, data);
     const newDocData: BaseEntity[] = await this.execQuery(query);
     return this.fromArangoStruct(newDocData[0]) as T;
   }
 
+  /**
+   * 
+   * @param uuid 
+   * @param newData 
+   */
+  static async update<T extends Entity, D extends {}>(uuid: Uuid, newData: D): Promise<T> {
+    await this.ready();
+    const query = updateQuery(this._coll, uuid, newData);
+    const newItem = await this.execQuery(query);
+    return this.fromArangoStruct(newItem[0]) as T;
+  }
 
 
   //------------------------------------------------------------

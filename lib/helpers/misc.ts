@@ -1,4 +1,4 @@
 export const err = e => {
-  console.debug(e);
+  console.log(e);
   return null;
 }

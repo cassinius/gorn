@@ -2,6 +2,7 @@ import { aql } from "arangojs";
 import { Nodege } from "../../types/arangoTypes";
 import { ArangoSearchView } from "arangojs/view";
 import { DOC, getSearchTextBlock } from "./miscQ";
+import { Uuid } from "../../types";
 
 const HARD_LIMIT = 30;
 
@@ -86,3 +87,19 @@ export function createQuery<D extends {}>(nodes: Nodege, data: D) {
     RETURN NEW
   `;
 }
+
+/**
+ *
+ * @param nodes
+ * @param data
+ */
+export function updateQuery<D extends {}>(nodes: Nodege, uuid: Uuid, data: D) {
+  return aql`
+    FOR d IN ${nodes}
+    FILTER d._key == ${uuid}
+    UPDATE d WITH ${data} 
+    IN ${nodes}
+    RETURN NEW
+  `;
+}
+
