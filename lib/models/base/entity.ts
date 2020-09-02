@@ -216,9 +216,15 @@ export class Entity implements BaseEntity {
    * @param newData 
    */
   static async update<T extends Entity, D extends {}>(uuid: Uuid, newData: D): Promise<T> {
+    // if ( !newData || Object.keys(newData).length === 0 ) {
+    //   throw new Error("newData must be valid object");
+    // }
     await this.ready();
     const query = updateQuery(this._coll, uuid, newData);
     const newItem = await this.execQuery(query);
+    if ( !newItem[0] ) {
+      return null;
+    }
     return this.fromArangoStruct(newItem[0]) as T;
   }
 
@@ -228,8 +234,13 @@ export class Entity implements BaseEntity {
    */
   static async delete<T extends Entity, D extends {}>(uuid: Uuid): Promise<Uuid> {
     await this.ready();
-    const query = deleteQuery(this._coll, uuid);
-    const deletedKey = await this.execQuery(query);// this._db.conn.query(query);
+    const checkQuery = getQuery(this._coll, [uuid], 1);
+    const items: any[] = await this.execQuery(checkQuery);
+    if ( !items[0] ) {
+      return null;
+    }
+    const delQuery = deleteQuery(this._coll, uuid);
+    const deletedKey = await this.execQuery(delQuery).catch(err);
     return deletedKey[0];
   }
 
