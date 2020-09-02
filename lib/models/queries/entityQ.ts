@@ -103,3 +103,20 @@ export function updateQuery<D extends {}>(nodes: Nodege, uuid: Uuid, data: D) {
   `;
 }
 
+/**
+ *
+ * @param nodes
+ * @param data
+ */
+export function deleteQuery<D extends {}>(nodes: Nodege, uuid: Uuid) {
+  const query = `
+    LET doc = DOCUMENT('${nodes.name}/${uuid}')
+    REMOVE doc IN ${nodes.name}
+    LET removed = OLD 
+    RETURN removed._key
+  `;
+  return {
+    query,
+    bindVars: {}
+  }
+}

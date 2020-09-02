@@ -1,7 +1,7 @@
 import { ArangoSearchView } from "arangojs/view";
 import { ArangoDBStruct, CollType, Nodege } from "../../types/arangoTypes";
 import { BaseEntity, Uuid } from "../../types/baseTypes";
-import { createQuery, getQuery, findQuery, labelQuery, allQuery, updateQuery } from "../queries/entityQ";
+import { createQuery, getQuery, findQuery, labelQuery, allQuery, updateQuery, deleteQuery } from "../queries/entityQ";
 import { getDBStruct } from "../../db/instantiateDB";
 import { err } from "../../helpers/misc";
 
@@ -220,6 +220,17 @@ export class Entity implements BaseEntity {
     const query = updateQuery(this._coll, uuid, newData);
     const newItem = await this.execQuery(query);
     return this.fromArangoStruct(newItem[0]) as T;
+  }
+
+  /**
+   * 
+   * @param uuid 
+   */
+  static async delete<T extends Entity, D extends {}>(uuid: Uuid): Promise<Uuid> {
+    await this.ready();
+    const query = deleteQuery(this._coll, uuid);
+    const deletedKey = await this.execQuery(query);// this._db.conn.query(query);
+    return deletedKey[0];
   }
 
 
