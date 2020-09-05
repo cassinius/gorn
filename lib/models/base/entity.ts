@@ -123,6 +123,9 @@ export class Entity implements BaseEntity {
     return await (await this._coll.count()).count;
   }
 
+  /**
+   * @todo test HARD LIMIT
+   */
   static async all<T extends Entity>(): Promise<T[]> {
     await this.ready();
     const results = await this.execQuery(allQuery(this._coll));
@@ -203,7 +206,7 @@ export class Entity implements BaseEntity {
    * 
    * @param data 
    */
-  static async create<T extends Entity, D extends {}>(data: D): Promise<T> {
+  static async create<D extends {}, T extends Entity = Entity>(data: D): Promise<T> {
     await this.ready();
     const query = createQuery(this._coll, data);
     const newDocData: BaseEntity[] = await this.execQuery(query);
