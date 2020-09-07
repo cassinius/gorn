@@ -129,7 +129,7 @@ export async function findOtherQuery(
   
   FOR vertex, edge, path IN 1..1 ANY
   d
-  @edges
+  ${edges}
   LIMIT 50
   
   COLLECT source = {
@@ -154,8 +154,7 @@ export async function findOtherQuery(
   return {
     query,
     bindVars: {
-      search,
-      edges
+      search
     },
   };
 }
@@ -184,7 +183,7 @@ export async function findPeerQuery(
     
     FOR o, e, p IN 2..2 ANY
     d
-    @edges
+    ${edges}
     LIMIT 30
 
     COLLECT
@@ -202,8 +201,7 @@ export async function findPeerQuery(
   return {
     query,
     bindVars: {
-      search,
-      edges,
+      search
     },
   };
 }

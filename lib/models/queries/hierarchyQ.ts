@@ -2,8 +2,8 @@ import { ArangoUnit, AqlQueryStruct } from "../../types/arangoTypes";
 import { ArangoSearchView } from "arangojs/view";
 import { getSearchTextBlock } from "./miscQ";
 
-const LIMIT_START_SET = 30;
-const LIMIT_RETURN_SET = 50;
+const LIMIT_START_SET = 5;
+const LIMIT_RETURN_SET = 30;
 
 /**
  * @todo TOO MANY RESULTS -> we still need either
@@ -129,20 +129,22 @@ export function findSubSuperQuery(
 
     FOR v, e, p IN @close..@far ${direction}
       d
-      @edges
+      ${edges}
     LIMIT ${LIMIT_RETURN_SET}
     RETURN DISTINCT v
   `;
 
+  const bindVars = {
+    search,
+    close,
+    far
+  };
+
   // console.debug(query);
+  // console.debug(bindVars);
 
   return {
     query,
-    bindVars: {
-      search,
-      close,
-      far,
-      edges
-    }
+    bindVars
   }
 }

@@ -305,9 +305,11 @@ export class Entity implements BaseEntity {
    */
   static async execQuery(query) {
     // await this.ready();
-    // console.debug('QUERY: ', query);
     const cursor = await this._db.conn.query(query).catch(err);
-    // console.debug('CURSOR: ', cursor);
+    // console.debug('CURSOR: ', cursor);    
+    if ( cursor == null ) {
+      throw new Error("ArangoDB returned NULL cursor...");
+    }
     return await cursor.all();
   }
 
