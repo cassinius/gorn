@@ -1,7 +1,7 @@
 import { ArangoSearchView } from "arangojs/view";
 import { ArangoDBStruct, CollType, Nodege } from "../../types/arangoTypes";
 import { BaseEntity, Uuid } from "../../types/baseTypes";
-import { createQuery, getQuery, findQuery, labelQuery, allQuery, updateQuery, deleteQuery } from "../queries/entityQ";
+import { createQuery, getQuery, findQuery, labelQuery, allQuery, updateQuery, deleteQuery, forceViewQuery } from "../queries/entityQ";
 import { getDBStruct } from "../../db/instantiateDB";
 import { err } from "../../helpers/misc";
 
@@ -132,6 +132,15 @@ export class Entity implements BaseEntity {
     return results.map(res => this.fromArangoStruct(res));
   }
 
+  /**
+   * 
+   */
+  static async forceViewSync(): Promise<void> {
+    await this.ready();
+    await this.execQuery(forceViewQuery(this.VIEW));
+    return null;
+  }
+
   //------------------------------------------------------------
   //                    GET-> BY LABEL
   //------------------------------------------------------------
@@ -225,7 +234,7 @@ export class Entity implements BaseEntity {
     await this.ready();
     const query = updateQuery(this._coll, uuid, newData);
     const newItem = await this.execQuery(query);
-    if ( !newItem[0] ) {
+    if (!newItem[0]) {
       return null;
     }
     return this.fromArangoStruct(newItem[0]) as T;
@@ -239,7 +248,7 @@ export class Entity implements BaseEntity {
     await this.ready();
     const checkQuery = getQuery(this._coll, [uuid], 1);
     const items: any[] = await this.execQuery(checkQuery);
-    if ( !items[0] ) {
+    if (!items[0]) {
       return null;
     }
     const delQuery = deleteQuery(this._coll, uuid);
@@ -307,8 +316,9 @@ export class Entity implements BaseEntity {
     // await this.ready();
     const cursor = await this._db.conn.query(query).catch(err);
     // console.debug('CURSOR: ', cursor);    
-    if ( cursor == null ) {
-      throw new Error("ArangoDB returned NULL cursor...");
+    if (cursor == null) {
+      // throw new Error("ArangoDB returned NULL cursor...");
+      return null;
     }
     return await cursor.all();
   }

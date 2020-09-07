@@ -6,9 +6,24 @@ import { Uuid } from "../../types";
 
 const HARD_LIMIT = 30;
 
+/**
+ * 
+ * @param coll 
+ */
 export function allQuery(coll: Nodege) {
   return aql`FOR d IN ${coll} LIMIT ${HARD_LIMIT} RETURN d`;
 }
+
+
+export function forceViewQuery(view: ArangoSearchView) {
+  return `
+    FOR i IN ${view.name} 
+    OPTIONS { waitForSync: true } 
+    LIMIT 1 
+    RETURN i._key
+  `;
+}
+
 
 /**
  * Since the DB might have no unique index on `label`, we
@@ -58,7 +73,7 @@ export function findQuery(view: ArangoSearchView, attrs: string[], search: strin
   const query = `
     LET keywords = TOKENS(@search, 'text_en')
     FOR d IN ${view.name}
-      ${searchBlock}
+      ${searchBlock} 
     SORT TFIDF(d) DESC
     LIMIT @limit
     RETURN d
