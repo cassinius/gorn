@@ -9,14 +9,17 @@ import { err } from "../../helpers/misc";
  * FOR ALL STATIC METHODS
  *
  * We use `this` to refer to the class object
- * the method was called upon.. e.g. `Skill` or `Job`.
- * Calling `Entity` would result in calling the
+ * the method was called upon.. e.g. `User` or `Friendship`.
+ * 
+ * @description Calling `Entity` would result in calling the
  * base-class method or instantiate an object from the
- * base-class, which is not what we desire.
+ * base-class, not the dynamic sub-class
  * 
  * @property {string} _view a string representation of the DB Search View
- * @property {ArangoSearchView} _searchView actual search view object
+ * @property {ArangoSearchView} _searchView actual search view object / handle
  *
+ * @todo this class should only represent `Nodes` and `Edges`
+ *       -> specify so via Types
  */
 export class Entity implements BaseEntity {
   _id: string;
@@ -24,6 +27,9 @@ export class Entity implements BaseEntity {
   _rev: string;
   _entity: {};
 
+  //------------------------------------------------------------
+  //              POLYMORPHIC (STATIC) ATTRIBUTES
+  //------------------------------------------------------------
   /**
    * These properties will only be initialized
    * in specific derived classes, since we can
@@ -31,21 +37,60 @@ export class Entity implements BaseEntity {
    * in beforehand.
    */
   protected static _db: ArangoDBStruct;
-  protected static _coll: Nodege;
-  protected static _type: CollType;
-  protected static _searchView: ArangoSearchView;
+
   /**
-   * @todo ideally those should all be type constraine,
+   * @description the DB unit holding items of `this` type
+   */
+  protected static _coll: Nodege;
+
+  /**
+   * @description type of DB object
+   * @example `Node`, `Edge`, `Graph` or `View`
+   * @todo `Entity` should only refer to Nodes or Edges,
+   *       its functionality does not make sense for others...!!
+   */
+  protected static _type: CollType;
+
+  /**
+   * @description which search view to query against
+   * @example in ArangoDB, this is an `ArangoSearchView` handle
+   */
+  protected static _searchView: ArangoSearchView;
+
+  /**
+   * @todo ideally the following properties should all be type constrained,
    *       - but in a flexible way
-   *       - "must be member of an 'Attr' enum or such.."
+   *       - which means we'd need polymorphic enums !?
+   *       - e.g. "must be member of an 'Attr' enum or such.."
    */
   protected static _class: string;
+
+  /**
+   * @description a string representation of the DB Search View
+   * @example in ArangoDB, this gets translated to an `ArangoSearchView` handle
+   */
   protected static _view: string;
+
+  /**
+   * @description the attribute which identifies a document
+   * @example `title` , `preferredLabel`, etc.
+   */
   protected static _labelField: string;
+
+  /**
+   * @description the attributes to query against in a `search` operation
+   */
   protected static _searchAttr: string[];
-  // which properties to collect, in queries 
-  // that don't return the whole object
-  protected static _retAttrs: string[];
+
+  /**
+   * @description attributes to collect in case we don't return the whole object
+   */
+  protected static _collectAttrs: string[];
+
+  /**
+   * @description attributes by which an object is identified as unique during `upsert`
+   */
+  protected static _uniqueAttrs: string[];
 
   //------------------------------------------------------------
   //                 GETTERS (dynamic *this*)
@@ -83,6 +128,7 @@ export class Entity implements BaseEntity {
   public static get viewStr(): string {
     return this._view;
   }
+
   /**
    * The actual ArangoSearchView
    */
@@ -110,7 +156,7 @@ export class Entity implements BaseEntity {
    * @example ['title', 'concepts'] or ['preferredLabel', 'altLabels']
    */
   public static get RETATT(): string[] {
-    return this._retAttrs;
+    return this._collectAttrs;
   }
 
 

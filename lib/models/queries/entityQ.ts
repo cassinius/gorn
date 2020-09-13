@@ -116,24 +116,24 @@ export function createQuery<D extends {}>(nodes: Nodege, data: D) {
  * @param nodes
  * @param data
  */
-// export function upsertQuery<D extends {}>(nodes: Nodege, data: D) {
-//   const query =`
-//     UPSERT @data
-//     INSERT @data
-//     UPDATE {}
-//     IN ${nodes}
-//     OPTIONS { 
-//       overwriteMode: "update", 
-//       keepNull: true, 
-//       mergeObjects: false
-//     }
-//     RETURN NEW
-//   `;
+export function upsertQuery<D extends {}>(nodes: Nodege, data: D) {
+  const query =`
+    UPSERT @data
+    INSERT @data
+    UPDATE {}
+    IN ${nodes}
+    OPTIONS { 
+      overwriteMode: "update", 
+      keepNull: true, 
+      mergeObjects: false
+    }
+    RETURN NEW
+  `;
 
-//   const bindVars = {
-//     data
-//   }
-// }
+  const bindVars = {
+    data
+  }
+}
 
 /**
  *
