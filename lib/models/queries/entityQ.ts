@@ -59,7 +59,8 @@ export function getQuery(coll: Nodege, uuids: string[], limit: number) {
 }
 
 /**
- *
+ * @todo First LIMIT, then SORT !?!?
+ * 
  * @param view
  * @param attrs
  * @param search
@@ -73,9 +74,9 @@ export function findQuery(view: ArangoSearchView, attrs: string[], search: strin
   const query = `
     LET keywords = TOKENS(@search, 'text_en')
     FOR d IN ${view.name}
-      ${searchBlock} 
-    SORT TFIDF(d) DESC
+      ${searchBlock}
     LIMIT @limit
+    SORT TFIDF(d) DESC
     RETURN d
   `;
 
@@ -97,7 +98,8 @@ export function findQuery(view: ArangoSearchView, attrs: string[], search: strin
  */
 export function createQuery<D extends {}>(nodes: Nodege, data: D) {
   return aql`
-    INSERT ${data} INTO ${nodes}
+    INSERT ${data} 
+    INTO ${nodes}
     OPTIONS { 
       overwriteMode: "conflict", 
       keepNull: true, 
@@ -108,21 +110,30 @@ export function createQuery<D extends {}>(nodes: Nodege, data: D) {
 }
 
 /**
- *
+ * @todo need to specify update / merge / replace fields per model
+ *       - have no time to do that now -> so we postbone for now...
+ * 
  * @param nodes
  * @param data
  */
-export function upsertQuery<D extends {}>(nodes: Nodege, data: D) {
-  return aql`
-    INSERT ${data} INTO ${nodes}
-    OPTIONS { 
-      overwriteMode: "replace", 
-      keepNull: true, 
-      mergeObjects: false
-    }
-    RETURN NEW
-  `;
-}
+// export function upsertQuery<D extends {}>(nodes: Nodege, data: D) {
+//   const query =`
+//     UPSERT @data
+//     INSERT @data
+//     UPDATE {}
+//     IN ${nodes}
+//     OPTIONS { 
+//       overwriteMode: "update", 
+//       keepNull: true, 
+//       mergeObjects: false
+//     }
+//     RETURN NEW
+//   `;
+
+//   const bindVars = {
+//     data
+//   }
+// }
 
 /**
  *

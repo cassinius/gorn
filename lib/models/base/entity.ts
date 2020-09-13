@@ -190,8 +190,14 @@ export class Entity implements BaseEntity {
   static async findOne<T extends Entity>(search: string): Promise<T> {
     await this.ready();
     const query = findQuery(this.VIEW, this.ATTRS, search, 1);
-    const results = await this.execQuery(query);
-    return results[0] ? (this.fromArangoStruct(results[0]) as T) : null;
+
+    // console.debug(query);
+
+    const items = await this.execQuery(query);
+    
+    // console.debug(items);
+
+    return items[0] ? (this.fromArangoStruct(items[0]) as T) : null;
   }
 
   /**
@@ -219,7 +225,7 @@ export class Entity implements BaseEntity {
     await this.ready();
     const query = createQuery(this._coll, data);
     const newItems: BaseEntity[] = await this.execQuery(query);
-    if (!newItems[0]) {
+    if (newItems == null || newItems[0] == null) {
       return null;
     }
     return this.fromArangoStruct(newItems[0]) as T;
@@ -229,15 +235,18 @@ export class Entity implements BaseEntity {
    * 
    * @param data 
    */
-  static async upsert<D extends {}, T extends Entity = Entity>(data: D): Promise<T> {
-    await this.ready();
-    const query = upsertQuery(this._coll, data);
-    const newItems: BaseEntity[] = await this.execQuery(query);
-    if (!newItems[0]) {
-      return null;
-    }
-    return this.fromArangoStruct(newItems[0]) as T;
-  }
+  // static async upsert<D extends {}, T extends Entity = Entity>(data: D): Promise<T> {
+  //   await this.ready();
+  //   const query = upsertQuery(this._coll, data);
+
+  //   console.debug(query);
+
+  //   const newItems: BaseEntity[] = await this.execQuery(query);
+  //   if (!newItems[0]) {
+  //     return null;
+  //   }
+  //   return this.fromArangoStruct(newItems[0]) as T;
+  // }
 
   /**
    * 
