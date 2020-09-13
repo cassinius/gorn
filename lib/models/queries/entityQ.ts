@@ -98,7 +98,28 @@ export function findQuery(view: ArangoSearchView, attrs: string[], search: strin
 export function createQuery<D extends {}>(nodes: Nodege, data: D) {
   return aql`
     INSERT ${data} INTO ${nodes}
-    OPTIONS { overwriteMode: "update", keepNull: true, mergeObjects: false }
+    OPTIONS { 
+      overwriteMode: "conflict", 
+      keepNull: true, 
+      mergeObjects: false 
+    }
+    RETURN NEW
+  `;
+}
+
+/**
+ *
+ * @param nodes
+ * @param data
+ */
+export function upsertQuery<D extends {}>(nodes: Nodege, data: D) {
+  return aql`
+    INSERT ${data} INTO ${nodes}
+    OPTIONS { 
+      overwriteMode: "replace", 
+      keepNull: true, 
+      mergeObjects: false
+    }
     RETURN NEW
   `;
 }

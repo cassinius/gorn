@@ -1,7 +1,7 @@
 import { ArangoSearchView } from "arangojs/view";
 import { ArangoDBStruct, CollType, Nodege } from "../../types/arangoTypes";
 import { BaseEntity, Uuid } from "../../types/baseTypes";
-import { createQuery, getQuery, findQuery, labelQuery, allQuery, updateQuery, deleteQuery, forceViewQuery } from "../queries/entityQ";
+import { createQuery, getQuery, findQuery, labelQuery, allQuery, updateQuery, deleteQuery, forceViewQuery, upsertQuery } from "../queries/entityQ";
 import { getDBStruct } from "../../db/instantiateDB";
 import { err } from "../../helpers/misc";
 
@@ -218,8 +218,25 @@ export class Entity implements BaseEntity {
   static async create<D extends {}, T extends Entity = Entity>(data: D): Promise<T> {
     await this.ready();
     const query = createQuery(this._coll, data);
-    const newDocData: BaseEntity[] = await this.execQuery(query);
-    return this.fromArangoStruct(newDocData[0]) as T;
+    const newItems: BaseEntity[] = await this.execQuery(query);
+    if (!newItems[0]) {
+      return null;
+    }
+    return this.fromArangoStruct(newItems[0]) as T;
+  }
+
+  /**
+   * 
+   * @param data 
+   */
+  static async upsert<D extends {}, T extends Entity = Entity>(data: D): Promise<T> {
+    await this.ready();
+    const query = upsertQuery(this._coll, data);
+    const newItems: BaseEntity[] = await this.execQuery(query);
+    if (!newItems[0]) {
+      return null;
+    }
+    return this.fromArangoStruct(newItems[0]) as T;
   }
 
   /**
@@ -233,11 +250,11 @@ export class Entity implements BaseEntity {
     // }
     await this.ready();
     const query = updateQuery(this._coll, uuid, newData);
-    const newItem = await this.execQuery(query);
-    if (!newItem[0]) {
+    const newItems = await this.execQuery(query);
+    if (!newItems[0]) {
       return null;
     }
-    return this.fromArangoStruct(newItem[0]) as T;
+    return this.fromArangoStruct(newItems[0]) as T;
   }
 
   /**
