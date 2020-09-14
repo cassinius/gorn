@@ -17,9 +17,9 @@ export const BaseCollections = {}
  * to the calling API.
  */
 export interface BaseEntity {
-  _id: string;
-  _key: string;
-  _rev: string;
+  _id?: string;
+  _key?: string;
+  _rev?: string;
 }
 
 /**

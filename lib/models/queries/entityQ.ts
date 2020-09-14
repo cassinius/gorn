@@ -28,14 +28,13 @@ export function forceViewQuery(view: ArangoSearchView) {
  * use a `LIMIT 1` directive to only fetch the first match
  *
  * @param coll
- * @param label
- *
- * @todo fulltext as slow as filter ??
+ * @param value {any} value to compare to
+ * 
  */
-export function labelQuery(coll: Nodege, labelField: string, label: string) {
+export function byFieldQuery(coll: Nodege, field: string, value: any) {
   return aql`
     FOR d IN ${coll}
-    FILTER d.${labelField} == ${label}
+    FILTER d.${field} == ${value}
     LIMIT 1
     RETURN d
   `;

@@ -1,7 +1,7 @@
 import { ArangoSearchView } from "arangojs/view";
 import { ArangoDBStruct, CollType, Nodege } from "../../types/arangoTypes";
 import { BaseEntity, Uuid } from "../../types/baseTypes";
-import { createQuery, getQuery, findQuery, labelQuery, allQuery, updateQuery, deleteQuery, forceViewQuery, upsertQuery } from "../queries/entityQ";
+import { createQuery, getQuery, findQuery, byFieldQuery, allQuery, updateQuery, deleteQuery, forceViewQuery, upsertQuery } from "../queries/entityQ";
 import { getDBStruct } from "../../db/instantiateDB";
 import { err } from "../../helpers/misc";
 
@@ -195,15 +195,33 @@ export class Entity implements BaseEntity {
   }
 
   //------------------------------------------------------------
-  //                    GET-> BY LABEL
+  //                    GET-> BY FIELD
   //------------------------------------------------------------
 
+  /**
+   * 
+   * @param label 
+   */
   static async byLabel<T extends Entity>(label: string): Promise<T> {
-    await this.ready();
-    const query = labelQuery(this._coll, this.LABEL_FLD, label);
-    const results = await this.execQuery(query);
-    return results[0] ? (this.fromArangoStruct(results[0]) as T) : null;
+    return await this.byField(this.LABEL_FLD, label);
   }
+
+  /**
+   * 
+   * @param field 
+   * @param value 
+   */
+  static async byField<T extends Entity>(field: string, value: any): Promise<T> {
+    await this.ready();
+    const query = byFieldQuery(this._coll, field, value);
+    const items = await this.execQuery(query);
+    if (items == null || items[0] == null) {
+      return null;
+    }
+    return items[0] ? (this.fromArangoStruct(items[0]) as T) : null;
+  }
+
+
 
   //------------------------------------------------------------
   //                    GET -> BY _ID
@@ -264,7 +282,6 @@ export class Entity implements BaseEntity {
     const results: any[] = await this.execQuery(query);
     return results.map(res => this.fromArangoStruct(res));
   }
-
 
   //------------------------------------------------------------
   //                 CREATE / UPDATE / DELETE
@@ -331,7 +348,6 @@ export class Entity implements BaseEntity {
     const deletedKey = await this.execQuery(delQuery).catch(err);
     return deletedKey[0];
   }
-
 
   //------------------------------------------------------------
   //                    JUST ENGINEERING...
