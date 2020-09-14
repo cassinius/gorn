@@ -1,8 +1,11 @@
 import { EdgeCollection } from 'arangojs/collection';
-import { Entity } from './entity';
+import { EdgeEntity, Entity } from './entity';
 import { CollType } from '../../types/arangoTypes';
 
-export class ArangoEdge extends Entity {
+/**
+ * @todo an edge always has 
+ */
+export class ArangoEdge extends EdgeEntity {
   public static _type = CollType.EDGE;
   protected static _coll: EdgeCollection;
 }

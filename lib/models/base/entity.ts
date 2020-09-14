@@ -1,6 +1,6 @@
 import { ArangoSearchView } from "arangojs/view";
 import { ArangoDBStruct, CollType, Nodege } from "../../types/arangoTypes";
-import { BaseEntity, Uuid } from "../../types/baseTypes";
+import { BaseEdgeEntity, BaseEntity, Uuid } from "../../types/baseTypes";
 import { createQuery, getQuery, findQuery, byFieldQuery, allQuery, updateQuery, deleteQuery, forceViewQuery, upsertQuery } from "../queries/entityQ";
 import { getDBStruct } from "../../db/instantiateDB";
 import { err } from "../../helpers/misc";
@@ -415,4 +415,23 @@ export class Entity implements BaseEntity {
     return await cursor.all();
   }
 
+}
+
+export class EdgeEntity extends Entity implements BaseEdgeEntity {
+  _from: string;
+  _to: string;
+
+  /**
+   * 
+   * @todo analyze and remove this `as unknown as T` nonsense !!
+   */
+  static fromArangoStruct<T extends Entity>(ae: EdgeEntity): T {
+    const entity = new this() as unknown  as T;
+    const { _id, _rev, _from, _to, ...rest } = ae;
+    entity._id = _id;
+    entity._rev = _rev;
+    entity._key = ae._key;
+    entity._entity = rest;
+    return entity;
+  }
 }

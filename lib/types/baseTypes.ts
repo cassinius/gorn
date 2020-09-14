@@ -27,3 +27,10 @@ export interface BaseEntity {
  * be done via an interface (not elegant...)
  */
 export class BaseEntity {}
+
+export interface BaseEdgeEntity extends BaseEntity {
+  _from: string;
+  _to: string;
+}
+
+export class BaseEdgeEntity {}
