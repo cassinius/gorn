@@ -102,7 +102,7 @@ export function Bipartite<T extends typeof ArangoNode>(
         throw "Could not find edge type to traverse.";
       }
 
-      const query = getPeerQuery(this._coll, via, cfg.uuids, this.RETATT, 2 * dist);
+      const query = getPeerQuery(this._coll, via, cfg.uuids, this.PICK_ATT, 2 * dist);
       // console.debug(query);
 
       const peers: any[] = await this.execQuery(query);
@@ -119,7 +119,7 @@ export function Bipartite<T extends typeof ArangoNode>(
      *       -> here we want to get entities of the 'other' group
      */
     static async findOther(cfg: BipFindOtherCfg): Promise<HasOtherStruct> {
-      const query = await findOtherQuery(this.VIEW, this.ATTRS, cfg.edges, cfg.search, this.RETATT);
+      const query = await findOtherQuery(this.VIEW, this.SEARCH_FLD, cfg.edges, cfg.search, this.PICK_ATT);
       const otherStruct = await this.execQuery(query);
       return otherStruct.map(ho => ({
         source: ho.source,
@@ -135,7 +135,7 @@ export function Bipartite<T extends typeof ArangoNode>(
       if (!via) {
         throw "Could not find existing edge type to traverse.";
       }
-      const query = await findPeerQuery(this.VIEW, this.ATTRS, via, cfg.search, this.RETATT);
+      const query = await findPeerQuery(this.VIEW, this.SEARCH_FLD, via, cfg.search, this.PICK_ATT);
       // console.debug(query);
 
       const peerJobs = await this.execQuery(query);

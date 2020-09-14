@@ -7,13 +7,12 @@ import { Uuid } from "../../types";
 const HARD_LIMIT = 30;
 
 /**
- * 
- * @param coll 
+ *
+ * @param coll
  */
 export function allQuery(coll: Nodege) {
   return aql`FOR d IN ${coll} LIMIT ${HARD_LIMIT} RETURN d`;
 }
-
 
 export function forceViewQuery(view: ArangoSearchView) {
   return `
@@ -23,7 +22,6 @@ export function forceViewQuery(view: ArangoSearchView) {
     RETURN i._key
   `;
 }
-
 
 /**
  * Since the DB might have no unique index on `label`, we
@@ -59,8 +57,8 @@ export function getQuery(coll: Nodege, uuids: string[], limit: number) {
 }
 
 /**
- * @todo First LIMIT, then SORT !?!?
- * 
+ * @todo First LIMIT, then SORT - WTF Arango ??!!
+ *
  * @param view
  * @param attrs
  * @param search
@@ -110,28 +108,40 @@ export function createQuery<D extends {}>(nodes: Nodege, data: D) {
 }
 
 /**
- * @todo need to specify update / merge / replace fields per model
- *       - have no time to do that now -> so we postbone for now...
  * 
  * @param nodes
  * @param data
+ * @param uniqueAttrs
+ * 
  */
-export function upsertQuery<D extends {}>(nodes: Nodege, data: D) {
+export function upsertQuery<D extends {}>(nodes: Nodege, data: D, uniqueAttrs: string[]) {
   const query =`
-    UPSERT @data
-    INSERT @data
-    UPDATE {}
-    IN ${nodes}
-    OPTIONS { 
-      overwriteMode: "update", 
-      keepNull: true, 
-      mergeObjects: false
+    UPSERT @unique_data
+    INSERT @insert_data
+    UPDATE @update_data
+    IN ${nodes.name}
+    OPTIONS {
+      exclusive: true,
+      ignoreRevs: true
     }
     RETURN NEW
   `;
 
+  const unique_data = {};
+  uniqueAttrs.forEach(att => unique_data[att] = data[att]);
+
   const bindVars = {
-    data
+    unique_data,
+    insert_data: data,
+    update_data: data
+  };
+
+  // console.debug(query);
+  // console.debug(bindVars);  
+
+  return {
+    query,
+    bindVars
   }
 }
 
@@ -164,6 +174,6 @@ export function deleteQuery<D extends {}>(nodes: Nodege, uuid: Uuid) {
   `;
   return {
     query,
-    bindVars: {}
-  }
+    bindVars: {},
+  };
 }

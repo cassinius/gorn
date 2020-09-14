@@ -51,7 +51,7 @@ export function Related<T extends typeof ArangoNode>(
       const query = relFindQuery(
         this.VIEW,
         config.edges,
-        this.ATTRS,
+        this.SEARCH_FLD,
         search,
         dist
       );

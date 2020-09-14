@@ -125,7 +125,7 @@ export function Hierarchy<T extends typeof ArangoNode>(
       far?: number
     ): Promise<T[]> {
       await this.ready();
-      const query = findSubSuperQuery(this.VIEW, this.ATTRS, config.edges, search, close ?? 1, far ?? 1);
+      const query = findSubSuperQuery(this.VIEW, this.SEARCH_FLD, config.edges, search, close ?? 1, far ?? 1);
       const results: any[] = await this.execQuery(query);
       return results.map(res => this.fromArangoStruct(res));
     }
@@ -143,7 +143,7 @@ export function Hierarchy<T extends typeof ArangoNode>(
       far?: number
     ): Promise<T[]> {
       await this.ready();
-      const query = findSubSuperQuery(this.VIEW, this.ATTRS, config.edges, search, close ?? 1, far ?? 1, false);
+      const query = findSubSuperQuery(this.VIEW, this.SEARCH_FLD, config.edges, search, close ?? 1, far ?? 1, false);
       const results: any[] = await this.execQuery(query);
       return results.map(res => this.fromArangoStruct(res));
     }

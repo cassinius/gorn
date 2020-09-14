@@ -83,9 +83,9 @@ export class Entity implements BaseEntity {
   protected static _searchAttr: string[];
 
   /**
-   * @description attributes to collect in case we don't return the whole object
+   * @description attributes to pick in case we don't return the whole object
    */
-  protected static _collectAttrs: string[];
+  protected static _pickAttrs: string[];
 
   /**
    * @description attributes by which an object is identified as unique during `upsert`
@@ -139,7 +139,7 @@ export class Entity implements BaseEntity {
   /**
    * Returns fields to search in (ArangoSearch / FT etc.)
    */
-  public static get ATTRS(): string[] {
+  public static get SEARCH_FLD(): string[] {
     return this._searchAttr;
   }
 
@@ -147,7 +147,7 @@ export class Entity implements BaseEntity {
    * Returns the model's label field
    * @example 'title', 'preferredLabel', etc.
    */
-  public static get LABATT(): string {
+  public static get LABEL_FLD(): string {
     return this._labelField;
   }
 
@@ -155,8 +155,15 @@ export class Entity implements BaseEntity {
    * Returns an array of properties to collect in query results
    * @example ['title', 'concepts'] or ['preferredLabel', 'altLabels']
    */
-  public static get RETATT(): string[] {
-    return this._collectAttrs;
+  public static get PICK_ATT(): string[] {
+    return this._pickAttrs;
+  }
+
+  /**
+   * Returns an array of properties to check uniqueness against in `upsert` operations
+   */
+  public static get UNIQUE_ATT(): string[] {
+    return this._uniqueAttrs;
   }
 
 
@@ -193,7 +200,7 @@ export class Entity implements BaseEntity {
 
   static async byLabel<T extends Entity>(label: string): Promise<T> {
     await this.ready();
-    const query = labelQuery(this._coll, this.LABATT, label);
+    const query = labelQuery(this._coll, this.LABEL_FLD, label);
     const results = await this.execQuery(query);
     return results[0] ? (this.fromArangoStruct(results[0]) as T) : null;
   }
@@ -235,7 +242,7 @@ export class Entity implements BaseEntity {
    */
   static async findOne<T extends Entity>(search: string): Promise<T> {
     await this.ready();
-    const query = findQuery(this.VIEW, this.ATTRS, search, 1);
+    const query = findQuery(this.VIEW, this.SEARCH_FLD, search, 1);
 
     // console.debug(query);
 
@@ -253,7 +260,7 @@ export class Entity implements BaseEntity {
    */
   static async findMany<T extends Entity>(search: string, limit: number): Promise<T[]> {
     await this.ready();
-    const query = findQuery(this.VIEW, this.ATTRS, search, limit);
+    const query = findQuery(this.VIEW, this.SEARCH_FLD, search, limit);
     const results: any[] = await this.execQuery(query);
     return results.map(res => this.fromArangoStruct(res));
   }
@@ -281,18 +288,15 @@ export class Entity implements BaseEntity {
    * 
    * @param data 
    */
-  // static async upsert<D extends {}, T extends Entity = Entity>(data: D): Promise<T> {
-  //   await this.ready();
-  //   const query = upsertQuery(this._coll, data);
-
-  //   console.debug(query);
-
-  //   const newItems: BaseEntity[] = await this.execQuery(query);
-  //   if (!newItems[0]) {
-  //     return null;
-  //   }
-  //   return this.fromArangoStruct(newItems[0]) as T;
-  // }
+  static async upsert<D extends {}, T extends Entity = Entity>(data: D): Promise<T> {
+    await this.ready();
+    const query = upsertQuery(this._coll, data, this.UNIQUE_ATT);
+    const newItems: BaseEntity[] = await this.execQuery(query);
+    if (newItems == null || newItems[0] == null) {
+      return null;
+    }
+    return this.fromArangoStruct(newItems[0]) as T;
+  }
 
   /**
    * 
@@ -306,7 +310,7 @@ export class Entity implements BaseEntity {
     await this.ready();
     const query = updateQuery(this._coll, uuid, newData);
     const newItems = await this.execQuery(query);
-    if (!newItems[0]) {
+    if (newItems == null || newItems[0] == null) {
       return null;
     }
     return this.fromArangoStruct(newItems[0]) as T;
