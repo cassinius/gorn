@@ -3,7 +3,7 @@ import { ArangoDBStruct, CollType, Nodege } from "../../types/arangoTypes";
 import { BaseEdgeEntity, BaseEntity, Uuid } from "../../types/baseTypes";
 import { createQuery, getQuery, findQuery, byFieldQuery, allQuery, updateQuery, deleteQuery, forceViewQuery, upsertQuery } from "../queries/entityQ";
 import { getDBStruct } from "../../db/instantiateDB";
-import { err } from "../../helpers/misc";
+import { errLog } from "../../helpers/error";
 
 /**
  * FOR ALL STATIC METHODS
@@ -345,7 +345,7 @@ export class Entity implements BaseEntity {
       return null;
     }
     const delQuery = deleteQuery(this._coll, uuid);
-    const deletedKey = await this.execQuery(delQuery).catch(err);
+    const deletedKey = await this.execQuery(delQuery).catch(errLog);
     return deletedKey[0];
   }
 
@@ -406,7 +406,7 @@ export class Entity implements BaseEntity {
    */
   static async execQuery(query) {
     // await this.ready();
-    const cursor = await this._db.conn.query(query).catch(err);
+    const cursor = await this._db.conn.query(query).catch(errLog);
     // console.debug('CURSOR: ', cursor);    
     if (cursor == null) {
       // throw new Error("ArangoDB returned NULL cursor...");

@@ -3,34 +3,47 @@ import { ArangoSearchView } from "arangojs/view";
 import { DocumentCollection, EdgeCollection, CollectionType } from "arangojs/collection";
 import { CollType, ArangoDBStruct, emptyDB, ArangoUnit } from "../types/arangoTypes";
 import { getArangoDBConn } from "./arangoConn";
+import { errLog, errReq, errSig, errSilent } from "../helpers/error";
 
 /**
- *
- * @param ref
- * @param collType
+ * @description insure = insert + ensure ;-)
  */
-async function createOrConfirm(ref: ArangoUnit, collType: CollType) {
+async function insureNodes(ref: DocumentCollection) {
   if (await ref.exists()) {
-    console.log(`${collType} obj. '${ref.name}' already exists.`);
+    console.log(`Nodes '${ref.name}' already exists.`);
   } else {
-    switch (collType) {
-      case CollType.NODE:
-        await (ref as DocumentCollection).create({ keyOptions: { type: "uuid" } });
-        break;
-      case CollType.EDGE:
-        await (ref as EdgeCollection).create({
-          type: CollectionType.EDGE_COLLECTION,
-          keyOptions: { type: "uuid" },
-        });
-        break;
-      case CollType.GRAPH:
-        await (ref as Graph).create([]);
-        break;
-      case CollType.VIEW:
-        await (ref as ArangoSearchView).create();
-        break;
-    }
-    console.log(`Created ${collType} obj. '${ref.name}'.`);
+    await ref.create({ keyOptions: { type: "uuid" } }).catch(errSig);
+    console.log(`Created Nodes ${ref.name}`);
+  }
+}
+
+async function insureEdges(ref: EdgeCollection) {
+  if (await ref.exists()) {
+    console.log(`Edges '${ref.name}' already exists.`);
+  } else {
+    await ref.create({
+      type: CollectionType.EDGE_COLLECTION,
+      keyOptions: { type: "uuid" }
+    }).catch(errSig);
+    console.log(`Created Edges ${ref.name}`);
+  }
+}
+
+async function insureGraph(ref: Graph) {
+  if (await ref.exists()) {
+    console.log(`Graph '${ref.name}' already exists.`);
+  } else {
+    await ref.create([]).catch(errSig);
+    console.log(`Created Graph ${ref.name}`);
+  }
+}
+
+async function insureView(ref: ArangoSearchView) {
+  if (await ref.exists()) {
+    console.log(`View '${ref.name}' already exists.`);
+  } else {
+    await ref.create().catch(errSig);
+    console.log(`Created View ${ref.name}`);
   }
 }
 
@@ -44,29 +57,29 @@ async function ensureExists(db: ArangoDBStruct, type: CollType) {
     case CollType.NODE:
       for (let key of Object.keys(db.nodes)) {
         db.nodes[key] = await db.conn.collection(key);
-        await createOrConfirm(db.nodes[key], CollType.NODE);
+        await insureNodes(db.nodes[key]);
       }
       break;
     case CollType.EDGE:
       for (let key of Object.keys(db.edges)) {
         db.edges[key] = await db.conn.collection(key);
-        await createOrConfirm(db.edges[key], CollType.EDGE);
+        await insureEdges(db.edges[key]);
       }
       break;
     case CollType.GRAPH:
       for (let key of Object.keys(db.graphs)) {
         db.graphs[key] = await db.conn.graph(key);
-        await createOrConfirm(db.graphs[key], CollType.GRAPH);
+        await insureGraph(db.graphs[key]);
       }
       break;
     case CollType.VIEW:
       for (let key of Object.keys(db.views)) {
         db.views[key] = await db.conn.view(key);
-        await createOrConfirm(db.views[key], CollType.VIEW);
+        await insureView(db.views[key]);
       }
       break;
     default:
-      console.log("What thingy is that !?");
+      console.log("What kind of thingy is *that* !?");
   }
 }
 
