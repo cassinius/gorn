@@ -414,7 +414,6 @@ export class Entity implements BaseEntity {
     }
     return await cursor.all();
   }
-
 }
 
 export class EdgeEntity extends Entity implements BaseEdgeEntity {

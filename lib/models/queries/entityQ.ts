@@ -97,11 +97,7 @@ export function createQuery<D extends {}>(nodes: Nodege, data: D) {
   return aql`
     INSERT ${data} 
     INTO ${nodes}
-    OPTIONS { 
-      overwriteMode: "conflict", 
-      keepNull: true, 
-      mergeObjects: false 
-    }
+    OPTIONS { overwriteMode: "conflict" }
     RETURN NEW
   `;
 }
