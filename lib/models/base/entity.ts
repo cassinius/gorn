@@ -3,7 +3,7 @@ import { ArangoDBStruct, CollType, Nodege } from "../../types/arangoTypes";
 import { BaseEdgeEntity, BaseEntity, Uuid } from "../../types/baseTypes";
 import { createQuery, getQuery, findQuery, byFieldQuery, allQuery, updateQuery, deleteQuery, forceViewQuery, upsertQuery } from "../queries/entityQ";
 import { getDBStruct } from "../../db/instantiateDB";
-import { errLog } from "../../helpers/error";
+import { errLog, errSig } from "../../helpers/error";
 
 /**
  * FOR ALL STATIC METHODS
@@ -406,7 +406,7 @@ export class Entity implements BaseEntity {
    */
   static async execQuery(query) {
     // await this.ready();
-    const cursor = await this._db.conn.query(query).catch(errLog);
+    const cursor = await this._db.conn.query(query);
     // console.debug('CURSOR: ', cursor);    
     if (cursor == null) {
       // throw new Error("ArangoDB returned NULL cursor...");
