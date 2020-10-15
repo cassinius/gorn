@@ -1,9 +1,9 @@
 import { ArangoSearchView } from "arangojs/view";
 import { ArangoDBStruct, CollType, Nodege } from "../../types/arangoTypes";
-import { BaseEdgeEntity, BaseEntity, Uuid } from "../../types/baseTypes";
-import { createQuery, getQuery, findQuery, byFieldQuery, allQuery, updateQuery, deleteQuery, forceViewQuery, upsertQuery } from "../queries/entityQ";
+import { BaseEdgeEntity, BaseEntity } from "../../types/baseTypes";
+import { getQuery, findQuery, byFieldQuery, allQuery, forceViewQuery } from "../queries/entityQ";
 import { getDBStruct } from "../../db/instantiateDB";
-import { errLog, errSig } from "../../helpers/error";
+
 
 /**
  * FOR ALL STATIC METHODS
@@ -25,7 +25,7 @@ export class Entity implements BaseEntity {
   _id: string;
   _key: string;
   _rev: string;
-  _entity: {};
+  _features: {};
 
   //------------------------------------------------------------
   //              POLYMORPHIC (STATIC) ATTRIBUTES
@@ -113,7 +113,7 @@ export class Entity implements BaseEntity {
   }
 
   /**
-   * @example "skills", "jobs", "users", ...
+   * @example "skills", "products", "users", ...
    * @todo should be a `Collection`.. ??
    */
   public static get Class(): string {
@@ -131,6 +131,8 @@ export class Entity implements BaseEntity {
 
   /**
    * The actual ArangoSearchView
+   * 
+   * @description anything that has features must be searchable...
    */
   public static get VIEW(): ArangoSearchView {
     return this._searchView;
@@ -284,72 +286,6 @@ export class Entity implements BaseEntity {
   }
 
   //------------------------------------------------------------
-  //                 CREATE / UPDATE / DELETE
-  //------------------------------------------------------------
-
-  /**
-   * 
-   * @param data 
-   */
-  static async create<D extends {}, T extends Entity = Entity>(data: D): Promise<T> {
-    await this.ready();
-    const query = createQuery(this._coll, data);
-    const newItems: BaseEntity[] = await this.execQuery(query);
-    if (newItems == null || newItems[0] == null) {
-      return null;
-    }
-    return this.fromArangoStruct(newItems[0]) as T;
-  }
-
-  /**
-   * 
-   * @param data 
-   */
-  static async upsert<D extends {}, T extends Entity = Entity>(data: D): Promise<T> {
-    await this.ready();
-    const query = upsertQuery(this._coll, data, this.UNIQUE_ATT);
-    const newItems: BaseEntity[] = await this.execQuery(query);
-    if (newItems == null || newItems[0] == null) {
-      return null;
-    }
-    return this.fromArangoStruct(newItems[0]) as T;
-  }
-
-  /**
-   * 
-   * @param uuid 
-   * @param newData 
-   */
-  static async update<T extends Entity, D extends {}>(uuid: Uuid, newData: D): Promise<T> {
-    // if ( !newData || Object.keys(newData).length === 0 ) {
-    //   throw new Error("newData must be valid object");
-    // }
-    await this.ready();
-    const query = updateQuery(this._coll, uuid, newData);
-    const newItems = await this.execQuery(query);
-    if (newItems == null || newItems[0] == null) {
-      return null;
-    }
-    return this.fromArangoStruct(newItems[0]) as T;
-  }
-
-  /**
-   * 
-   * @param uuid 
-   */
-  static async delete<T extends Entity, D extends {}>(uuid: Uuid): Promise<Uuid> {
-    await this.ready();
-    const checkQuery = getQuery(this._coll, [uuid], 1);
-    const items: any[] = await this.execQuery(checkQuery);
-    if (!items[0]) {
-      return null;
-    }
-    const delQuery = deleteQuery(this._coll, uuid);
-    const deletedKey = await this.execQuery(delQuery).catch(errLog);
-    return deletedKey[0];
-  }
-
-  //------------------------------------------------------------
   //                    JUST ENGINEERING...
   //------------------------------------------------------------
 
@@ -358,7 +294,7 @@ export class Entity implements BaseEntity {
    * interpret the result from the outside..
    */
   toJson<T>() {
-    return this._entity as T;
+    return this._features as T;
   }
 
   /**
@@ -371,11 +307,11 @@ export class Entity implements BaseEntity {
    */
   static fromArangoStruct<T extends Entity>(ae: BaseEntity): T {
     const entity = new this() as T;
-    const { _id, _rev, ...rest } = ae;
+    const { _id, _rev, ...restOfFeatures } = ae;
     entity._id = _id;
     entity._rev = _rev;
     entity._key = ae._key;
-    entity._entity = rest;
+    entity._features = restOfFeatures;
     return entity;
   }
 
@@ -430,7 +366,7 @@ export class EdgeEntity extends Entity implements BaseEdgeEntity {
     entity._id = _id;
     entity._rev = _rev;
     entity._key = ae._key;
-    entity._entity = rest;
+    entity._features = rest;
     return entity;
   }
 }

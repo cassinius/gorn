@@ -28,6 +28,11 @@ export interface BaseEntity {
  */
 export class BaseEntity {}
 
+/**
+ * @todo if we call this Base-"Edge"-Entity, why not
+ *       call the other one Base-"Node"-Entity... ??
+ *       whatever...
+ */
 export interface BaseEdgeEntity extends BaseEntity {
   _from: string;
   _to: string;

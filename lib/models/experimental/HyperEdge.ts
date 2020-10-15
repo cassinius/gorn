@@ -1,8 +1,10 @@
-// import { Entity} from "./base/entity";
+import { DocumentCollection } from "arangojs/collection";
+
+import { CollType } from "../../types";
+
+import { Entity} from "../base/entity";
 import { ArangoNode } from "../base/node";
 import { ArangoEdge } from "../base/edge";
-import { CollType } from "../../types";
-import { DocumentCollection } from "arangojs/collection";
 
 
 /**
@@ -19,16 +21,25 @@ import { DocumentCollection } from "arangojs/collection";
  * @todo making all properties optional is **nonsense** but required if we want to override the base method's `create` method
  */
 export interface HE3CreateCfg {
-  fromKey?: string;
-  infoKey?: string;
-  toKey?: string;
-  nodeData?: {};
-  edgeData?: {};
+  fromNode: ArangoNode;
+  infoNode: ArangoNode;
+  toNode: ArangoNode;
+  nodeData: {};
+  edgeData: {};
 }
 
 /**
  *
- * Hyperedge class spanning exactly 3 Nodes
+ * Hyperedge class spanning exactly 3 Nodes (apart from itself)
+ * 
+ * Responsibilities:
+ * 
+ * 1. WIRING (Abstraction) give us one datastructure to handle the whole 'knot' of internal connections
+ * 2. LIFECYCLE (Transaction) handle the internal complexity in `upsertion` and `rollback`
+ * 3. QUERYING (Simplification) handle the internal complexity in queries and present transparent results to the outside
+ * 4. ...?
+ * 
+ * Structure:
  *
  * - _fromNode: the node that would have been the source
  * - _toNode: the node that would have been the target
@@ -43,16 +54,18 @@ export interface HE3CreateCfg {
  * @todo review the literature whether this makes actual sense...
  *
  * @todo make sure the edges can only connect to US
+ * 
+ * @todo what are the responsibilities of a hyperedge ?
  *
  */
-export class ArangoHyperEdge3 extends ArangoNode {
+export class ArangoHyperEdge3 extends Entity {
   public static _type = CollType.NODE;
   public static _coll: DocumentCollection;
 
   /**
    * @todo do we have special mandatory hyperedge features ?
    */
-  public _entity: {};
+  public _features: {};
 
   /**
    * Hyperedge Nodes
@@ -81,10 +94,10 @@ export class ArangoHyperEdge3 extends ArangoNode {
    * @todo any good reason **NOT** to use `this.getOne` ??
    * 
    */
-  static async create<C extends HE3CreateCfg, T extends ArangoHyperEdge3>(cfg: C): Promise<T> {
-    this._fromNode = await this.getOne(cfg.fromKey);
-    this._infoNode = await this.getOne(cfg.infoKey);
-    this._toNode = await this.getOne(cfg.toKey);
+  static async create<C extends HE3CreateCfg, T extends ArangoHyperEdge3>(params: C): Promise<T> {
+    this._fromNode = params.fromNode;
+    this._infoNode = params.infoNode;
+    this._toNode = params.toNode;
 
     if ( !(this._fromNode && this._infoNode && this._toNode) ) {
       throw new Error("all 3 nodes of a 3-hyper-edge must exist.");
@@ -99,6 +112,5 @@ export class ArangoHyperEdge3 extends ArangoNode {
 
     // return await super.create(cfg.nodeData);
   }
-
 
 }

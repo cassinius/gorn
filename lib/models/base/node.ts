@@ -1,5 +1,5 @@
 import { DocumentCollection } from "arangojs/collection";
-import { Entity } from "./entity";
+import { BaseDoc } from "./basedoc";
 import { CollType } from "../../types/arangoTypes";
 
 /**
@@ -17,8 +17,7 @@ import { CollType } from "../../types/arangoTypes";
  *       -> probably YES
  * 
  */
-export class ArangoNode extends Entity {
+export class ArangoNode extends BaseDoc {
   public static _type = CollType.NODE;
   protected static _coll: DocumentCollection;
-  // protected static _db;
 }
