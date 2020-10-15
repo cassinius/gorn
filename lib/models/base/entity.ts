@@ -25,7 +25,7 @@ export class Entity implements BaseEntity {
   _id: string;
   _key: string;
   _rev: string;
-  _features: {};
+  protected _features: {};
 
   //------------------------------------------------------------
   //              POLYMORPHIC (STATIC) ATTRIBUTES
@@ -95,6 +95,14 @@ export class Entity implements BaseEntity {
   //------------------------------------------------------------
   //                 GETTERS (dynamic *this*)
   //------------------------------------------------------------
+
+  public get features(): any {
+    return this._features;
+  }
+
+  public set features(f) {
+    this._features = f;
+  }
 
   /**
    * @example "inodisDB", "lemontigerDB", ...
@@ -293,8 +301,8 @@ export class Entity implements BaseEntity {
    * The <T> allows us to at least correctly 
    * interpret the result from the outside..
    */
-  toJson<T>() {
-    return this._features as T;
+  toJson<T>(): T {
+    return this.features as T;
   }
 
   /**
@@ -342,8 +350,12 @@ export class Entity implements BaseEntity {
    */
   static async execQuery(query) {
     // await this.ready();
+    console.debug('QUERY: ', query);
+
     const cursor = await this._db.conn.query(query);
-    // console.debug('CURSOR: ', cursor);    
+    
+    // console.debug('CURSOR: ', cursor);
+    
     if (cursor == null) {
       // throw new Error("ArangoDB returned NULL cursor...");
       return null;
@@ -366,7 +378,7 @@ export class EdgeEntity extends Entity implements BaseEdgeEntity {
     entity._id = _id;
     entity._rev = _rev;
     entity._key = ae._key;
-    entity._features = rest;
+    entity.features = rest;
     return entity;
   }
 }
