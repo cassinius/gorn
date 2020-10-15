@@ -55,6 +55,22 @@ export interface HE3Params {
  * - _fromEdge: _fromNode -> this
  * - _infoEdge: _infoNode -> this
  * - _toEdge: this -> _toNode
+ * 
+ * @todo What's a good threshold of abstraction? Let's think about it in terms of transactions:
+ * 
+ * Passing in "some" field descriptors from an input file and 
+ * trusting the hyperedge to know how to instantiate an object is
+ * on the wrong level of abstraction (a hyperedge SHOULD only be
+ * responsible for the wiring, not the lookup & instantiation of nodes).
+ * 
+ * - if any of the nodes do not exist, we want to create them -> but only from the outside, right ??
+ * - if the whole inner hyper-edge creation fails, we want to roll-back (delete) created nodes, right ??
+ * - we hand references to nodes to the hyperedge, asking it to connect them for us...
+ * - internally, if any edge creation fails, the HE should roll-back & give an error
+ * 
+ * - Is a hyper-edge responsible for node creation? -> NO 
+ *    -> so we roll-back manually??
+ * - Is a hyper-edge responsible for edge creation? -> YES
  *
  * @todo review the literature whether this structure makes actual sense...
  *
@@ -63,10 +79,10 @@ export class HyperEdge3 extends Entity {
   public static _type = CollType.NODE;
   public static _coll: DocumentCollection;
 
-  protected static hyperNode: ArangoNode;
-  protected static fromEdgeKlass: ArangoEdge;
-  protected static infoEdgeKlass: ArangoEdge;
-  protected static toEdgeKlass: ArangoEdge;
+  protected static hyperNode: typeof ArangoNode;
+  protected static fromEdgeKlass: typeof ArangoEdge;
+  protected static infoEdgeKlass: typeof ArangoEdge;
+  protected static toEdgeKlass: typeof ArangoEdge;
 
   /**
    * @todo does the hyperedge have features itself ?
@@ -87,12 +103,11 @@ export class HyperEdge3 extends Entity {
   protected _toEdge: ArangoEdge;
   protected _infoEdge: ArangoEdge;
 
-
   /**
    * GETTERS / SETTERS FOR POLYMORPHISM
    */
   public static get HyperNode() {
-    return this.hyperNode as ArangoNode;
+    return this.hyperNode;
   }
 
   public static get FromEdge() {
@@ -128,24 +143,28 @@ export class HyperEdge3 extends Entity {
     }
 
     const hyper = new HyperEdge3();
-    hyper._hyperNode = await this.HyperNode.create(params.nodeFeatures);
     hyper._fromNode = params.fromNode;
     hyper._infoNode = params.infoNode;
     hyper._toNode = params.toNode;
+    // console.log('HYPER HYPER: ', this.HyperNode);
 
-    // hyper._fromEdge = await ArangoEdge.create<BaseEdgeEntity>({
-    //   _from: hyper._fromNode._id,
-    //   _to: hyper._hyperNode._id,
-    // });
-    // hyper._infoEdge = await ArangoEdge.create<BaseEdgeEntity>({
-    //   _from: hyper._infoNode._id,
-    //   _to: hyper._hyperNode._id,
-    //   ...params.infoFeatures
-    // });
-    // hyper._toEdge = await ArangoEdge.create<BaseEdgeEntity>({
-    //   _from: hyper._hyperNode._id,
-    //   _to: hyper._toNode._id,
-    // });
+    hyper._hyperNode = await this.HyperNode.create(params.nodeFeatures);
+
+    hyper._fromEdge = await this.fromEdgeKlass.create<BaseEdgeEntity>({
+      _from: hyper._fromNode._id,
+      _to: hyper._hyperNode._id,
+    });
+
+    hyper._infoEdge = await this.infoEdgeKlass.create<BaseEdgeEntity>({
+      _from: hyper._infoNode._id,
+      _to: hyper._hyperNode._id,
+      ...params.infoFeatures
+    });
+
+    hyper._toEdge = await this.toEdgeKlass.create<BaseEdgeEntity>({
+      _from: hyper._hyperNode._id,
+      _to: hyper._toNode._id,
+    });
 
     return hyper;
   }
