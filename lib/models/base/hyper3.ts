@@ -56,6 +56,13 @@ export interface HE3Params {
  * - _infoEdge: _infoNode -> this
  * - _toEdge: this -> _toNode
  * 
+ * A hyper-edge does not have any direct mapping to a DB record.
+ * This means there is no natural way to retrieve it without
+ * knowing what you're looking for. 
+ * 
+ * @todo retrieving from a hyperedge should be handled via a mixin...
+ * 
+ * 
  * @todo What's a good threshold of abstraction? Let's think about it in terms of transactions:
  * 
  * Passing in "some" field descriptors from an input file and 
@@ -68,7 +75,7 @@ export interface HE3Params {
  * - we hand references to nodes to the hyperedge, asking it to connect them for us...
  * - internally, if any edge creation fails, the HE should roll-back & give an error
  * 
- * - Is a hyper-edge responsible for node creation? -> NO 
+ * - Is a hyper-edge responsible for node creation? -> NO
  *    -> so we roll-back manually??
  * - Is a hyper-edge responsible for edge creation? -> YES
  *
@@ -121,6 +128,16 @@ export class HyperEdge3 extends Entity {
   public static get ToEdge() {
     return this.toEdgeKlass;
   }
+
+  /**
+   * 
+   * We need to override the count() method since we have no DB collection of our own...
+   */
+  static async count(): Promise<number> {
+    await this.ready();
+    return await this.HyperNode.count();
+  }
+
 
   /**
    * 
