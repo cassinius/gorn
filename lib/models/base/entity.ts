@@ -373,7 +373,7 @@ export class EdgeEntity extends Entity implements BaseEdgeEntity {
    * @todo analyze and remove this `as unknown as T` nonsense !!
    */
   static fromArangoStruct<T extends Entity>(ae: EdgeEntity): T {
-    const entity = new this() as unknown  as T;
+    const entity = new this() as unknown as T;
     const { _id, _rev, _from, _to, ...rest } = ae;
     entity._id = _id;
     entity._rev = _rev;

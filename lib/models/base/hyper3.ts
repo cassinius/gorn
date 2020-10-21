@@ -1,10 +1,8 @@
 import { DocumentCollection } from "arangojs/collection";
 import { BaseEdgeEntity, CollType } from "../../types";
-import { Entity} from "./entity";
+import { Entity } from "./entity";
 import { ArangoNode } from "./node";
 import { ArangoEdge } from "./edge";
-
-// import { errSig } from "../../helpers/error";
 
 /**
  * Information we need in order to create a hyperedge
@@ -16,7 +14,7 @@ import { ArangoEdge } from "./edge";
  * @property {string} toKey Key to lookup _toNode
  * @property {object} nodeData features to be stored in the Hyperedge itself
  * @property {object} edgeData will be deconstructed into separate edge feature vectors
- * 
+ *
  * @todo making all properties optional is **nonsense** but required if we want to override the base method's `create` method
  */
 export interface HE3Params {
@@ -24,7 +22,7 @@ export interface HE3Params {
   infoNode: ArangoNode;
   toNode: ArangoNode;
   nodeFeatures: {};
-  
+
   /**
    * @todo do we need edgeFeatures for all Edges ??
    */
@@ -36,14 +34,14 @@ export interface HE3Params {
 /**
  *
  * Hyperedge class spanning exactly 3 Nodes (apart from itself)
- * 
+ *
  * Responsibilities:
- * 
+ *
  * 1. WIRING (Abstraction) give us one datastructure to handle the whole 'knot' of internal connections
  * 2. LIFECYCLE (Transaction) handle the internal complexity in `upsertion` and `rollback`
  * 3. QUERYING (Simplification) handle the internal complexity in queries and present transparent results to the outside
  * 4. ...?
- * 
+ *
  * Structure:
  *
  * - _fromNode: the node that would have been the source
@@ -55,26 +53,29 @@ export interface HE3Params {
  * - _fromEdge: _fromNode -> this
  * - _infoEdge: _infoNode -> this
  * - _toEdge: this -> _toNode
- * 
+ *
  * A hyper-edge does not have any direct mapping to a DB record.
  * This means there is no natural way to retrieve it without
- * knowing what you're looking for. 
- * 
+ * knowing what you're looking for.
+ *
+ * @description A hyperedge does not have it's own _feature vector,
+ *              otherwise it would need a collection / table as well,
+ *              and we want it to be a purely logical structure.
+ *
  * @todo retrieving from a hyperedge should be handled via a mixin...
- * 
- * 
+ *
  * @todo What's a good threshold of abstraction? Let's think about it in terms of transactions:
- * 
- * Passing in "some" field descriptors from an input file and 
+ *
+ * Passing in "some" field descriptors from an input file and
  * trusting the hyperedge to know how to instantiate an object is
  * on the wrong level of abstraction (a hyperedge SHOULD only be
  * responsible for the wiring, not the lookup & instantiation of nodes).
- * 
+ *
  * - if any of the nodes do not exist, we want to create them -> but only from the outside, right ??
  * - if the whole inner hyper-edge creation fails, we want to roll-back (delete) created nodes, right ??
  * - we hand references to nodes to the hyperedge, asking it to connect them for us...
  * - internally, if any edge creation fails, the HE should roll-back & give an error
- * 
+ *
  * - Is a hyper-edge responsible for node creation? -> NO
  *    -> so we roll-back manually??
  * - Is a hyper-edge responsible for edge creation? -> YES
@@ -92,17 +93,13 @@ export class HyperEdge3 extends Entity {
   protected static toEdgeKlass: typeof ArangoEdge;
 
   /**
-   * @todo does the hyperedge have features itself ?
-   */
-  protected _features: {};
-
-  /**
    * Hyperedge node instances
    */
   protected _hyperNode: ArangoNode;
   protected _fromNode: ArangoNode;
   protected _toNode: ArangoNode;
   protected _infoNode: ArangoNode;
+
   /**
    * Hyperedge edge instances
    */
@@ -130,7 +127,7 @@ export class HyperEdge3 extends Entity {
   }
 
   /**
-   * 
+   *
    * We need to override the count() method since we have no DB collection of our own...
    */
   static async count(): Promise<number> {
@@ -138,25 +135,31 @@ export class HyperEdge3 extends Entity {
     return await this.HyperNode.count();
   }
 
-
   /**
-   * 
+   *
    * CREATE - take 3 nodes and connect them internally
-   * 
+   *
    * - nodes already exist
    * - edges are created here
    *
-   * @todo shall we do transactions / rollback ? 
-   *       -> not yet 
+   * @todo shall we do transactions / rollback ?
+   *       -> not yet
    * @todo shall we check for different nodes ? -> && _from !== _info && _info !== _to && _from !== _to
    *       -> maybe in Version 55.0...
+   *
    * @todo how to deal with exceptions ?
    *       -> let the outside world deal with it !
-   * 
+   *
+   * @todo if we catch errors in here, we cannot use / log them on the outside,
+   *       but if we don't catch them in here, we end the hyper-edge creation
+   *       in any case, even if the operation is assumed to continue...
+   *
+   *       => so ONLY HANDLE ABSOLUTE failures in here & rollback, else
+   *          make sure that creation is conditional (upsert e.g.)
    */
   static async create(params: HE3Params): Promise<HyperEdge3> {
-    if ( !(params.fromNode && params.infoNode && params.toNode) ) {
-      throw new Error("all 3 nodes of a 3-hyper-edge must be valid Nodes.");
+    if (!(params.fromNode && params.infoNode && params.toNode)) {
+      throw new Error("all 3 nodes of a 3-hyper-edge must exist & be valid.");
     }
 
     const hyper = new HyperEdge3();
@@ -165,25 +168,50 @@ export class HyperEdge3 extends Entity {
     hyper._toNode = params.toNode;
     // console.log('HYPER HYPER: ', this.HyperNode);
 
-    hyper._hyperNode = await this.HyperNode.create(params.nodeFeatures);
+    const errors = [];
 
-    hyper._fromEdge = await this.fromEdgeKlass.create<BaseEdgeEntity>({
-      _from: hyper._fromNode._id,
-      _to: hyper._hyperNode._id,
-    });
+    // Upserting will succeed in any "normal" case (it's just a bit slow...)
+    hyper._hyperNode = <ArangoNode>(
+      await this.HyperNode.upsert(params.nodeFeatures).catch((e: Error) =>
+        errors.push("HyperEdge -> NODE creation failed...", e.message)
+      )
+    );
 
-    hyper._infoEdge = await this.infoEdgeKlass.create<BaseEdgeEntity>({
-      _from: hyper._infoNode._id,
-      _to: hyper._hyperNode._id,
-      ...params.infoFeatures
-    });
+    hyper._fromEdge = <ArangoEdge>await this.fromEdgeKlass
+      .create<BaseEdgeEntity>({
+        _from: hyper._fromNode._id,
+        _to: hyper._hyperNode._id,
+      })
+      .catch((e: Error) =>
+        errors.push("HyperEdge -> FROM edge creation failed...", e.message)
+      );
 
-    hyper._toEdge = await this.toEdgeKlass.create<BaseEdgeEntity>({
-      _from: hyper._hyperNode._id,
-      _to: hyper._toNode._id,
-    });
+    hyper._infoEdge = <ArangoEdge>await this.infoEdgeKlass
+      .create<BaseEdgeEntity>({
+        _from: hyper._infoNode._id,
+        _to: hyper._hyperNode._id,
+        ...params.infoFeatures,
+      })
+      .catch((e: Error) =>
+        errors.push("HyperEdge -> INFO edge creation failed...", e.message)
+      );
+
+    hyper._toEdge = <ArangoEdge>await this.toEdgeKlass
+      .create<BaseEdgeEntity>({
+        _from: hyper._hyperNode._id,
+        _to: hyper._toNode._id,
+      })
+      .catch((e: Error) =>
+        errors.push("HyperEdge -> TO edge creation failed...", e.message)
+      );
+
+    /**
+     * @todo primitive...
+     */
+    if ( errors.length ) {
+      throw new Error("HyperEdge creation encountered errors: " + errors.join(''));
+    }
 
     return hyper;
   }
-
 }
