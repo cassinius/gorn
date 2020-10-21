@@ -12,8 +12,8 @@ export const DOC: string = "d";
  */
 export function getSearchTextBlock(attrs: string[], d: string) {
   let searchBlock = "SEARCH ANALYZER(";
-  searchBlock += attrs.map(a => `${d}.${a} IN keywords`).join(" OR ");
-  searchBlock += ` OR BOOST(${d}.${attrs[0]} == keywords[0], 2)`;
+  searchBlock += attrs.map(a => `${d}['${a}'] IN keywords`).join(" OR ");
+  searchBlock += ` OR BOOST(${d}['${attrs[0]}'] == keywords[0], 2)`;
   searchBlock += ", 'text_en')";
   return searchBlock;
 }
