@@ -139,8 +139,13 @@ export class HyperEdge3 extends Entity {
    *
    * CREATE - take 3 nodes and connect them internally
    *
-   * - nodes already exist
-   * - edges are created here
+   * - nodes should already exist
+   * - internal (hyper) node is inserted or retrieved
+   * - edges are retrieved or created
+   *
+   * @description we do not make assumptions about node/edge duplication / uniqueness
+   *              rules, so we just check for their existence or else try to
+   *              create them => only if *both* fails, we throw an Error
    *
    * @todo shall we do transactions / rollback ?
    *       -> not yet
@@ -168,50 +173,69 @@ export class HyperEdge3 extends Entity {
     hyper._toNode = params.toNode;
     // console.log('HYPER HYPER: ', this.HyperNode);
 
-    const errors = [];
 
-    // Upserting will succeed in any "normal" case (it's just a bit slow...)
+    /**
+     * this means all hyper-nodes need to have `uniqueAttr` defined...
+     */
     hyper._hyperNode = <ArangoNode>(
-      await this.HyperNode.upsert(params.nodeFeatures).catch((e: Error) =>
-        errors.push("HyperEdge -> NODE creation failed...", e.message)
-      )
+      await this.HyperNode.upsert(params.nodeFeatures)
     );
 
-    hyper._fromEdge = <ArangoEdge>await this.fromEdgeKlass
-      .create<BaseEdgeEntity>({
+    let fromEdge = <ArangoEdge>(
+      await this.fromEdgeKlass.byNodes(
+        hyper._fromNode._id,
+        hyper._hyperNode._id
+      )
+    );
+    if (!fromEdge) {
+      fromEdge = <ArangoEdge>await this.fromEdgeKlass.create<BaseEdgeEntity>({
         _from: hyper._fromNode._id,
         _to: hyper._hyperNode._id,
-      })
-      .catch((e: Error) =>
-        errors.push("HyperEdge -> FROM edge creation failed...", e.message)
-      );
+      });
+    }
 
-    hyper._infoEdge = <ArangoEdge>await this.infoEdgeKlass
-      .create<BaseEdgeEntity>({
+    let infoEdge = <ArangoEdge>(
+      await this.infoEdgeKlass.byNodes(
+        hyper._infoNode._id,
+        hyper._hyperNode._id
+      )
+    );
+    if (!infoEdge) {
+      infoEdge = <ArangoEdge>await this.infoEdgeKlass.create<BaseEdgeEntity>({
         _from: hyper._infoNode._id,
         _to: hyper._hyperNode._id,
         ...params.infoFeatures,
-      })
-      .catch((e: Error) =>
-        errors.push("HyperEdge -> INFO edge creation failed...", e.message)
-      );
-
-    hyper._toEdge = <ArangoEdge>await this.toEdgeKlass
-      .create<BaseEdgeEntity>({
-        _from: hyper._hyperNode._id,
-        _to: hyper._toNode._id,
-      })
-      .catch((e: Error) =>
-        errors.push("HyperEdge -> TO edge creation failed...", e.message)
-      );
-
-    /**
-     * @todo primitive...
-     */
-    if ( errors.length ) {
-      throw new Error("HyperEdge creation encountered errors: " + errors.join(''));
+      });
     }
 
+    let toEdge = <ArangoEdge>(
+      await this.toEdgeKlass.byNodes(hyper._hyperNode._id, hyper._toNode._id)
+    );
+    if (!toEdge) {
+      toEdge = <ArangoEdge>await this.toEdgeKlass.create<BaseEdgeEntity>({
+        _from: hyper._hyperNode._id,
+        _to: hyper._toNode._id,
+      });
+    }
+
+    hyper._fromEdge = fromEdge;
+    hyper._infoEdge = infoEdge;
+    hyper._toEdge = toEdge;
+
     return hyper;
+  }
+
+  /**
+   * @todo
+   */
+  static async truncate() {
+    throw new Error("Hyperedge->truncate() not implemented yet.");
+  }
+
+  /**
+   * @todo
+   */
+  static async delete() {
+    throw new Error("Hyperedge->delete() not implemented yet.");
   }
 }
