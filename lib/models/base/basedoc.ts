@@ -2,6 +2,7 @@ import { Entity } from "./entity";
 import { Uuid } from "../../types/baseTypes";
 import { createQuery, getQuery, updateQuery, deleteQuery, upsertQuery } from "../queries/entityQ";
 import { errLog, errSig } from "../../helpers/error";
+import { Nodege } from "../../types";
 
 /**
  * Nodes and edges have basic (and identical) CRUD functionality
@@ -72,6 +73,24 @@ export class BaseDoc extends Entity {
     const delQuery = deleteQuery(this._coll, uuid);
     const deletedKey = await this.execQuery(delQuery).catch(errLog);
     return deletedKey[0];
+  }
+
+  /**
+   *
+   */
+  static async truncateCollection() {
+    // throw new Error("Hyperedge->truncate() not implemented yet.");
+    const ne: Nodege = this._db.conn.collection(this._class);
+    await ne.truncate().catch((e: Error) => console.log(`Truncating collection ${this._class} failed... \n`, e.message));
+  }
+
+  /**
+   *
+   */
+  static async dropCollection() {
+    // throw new Error("Hyperedge->delete() not implemented yet.");
+    const ne: Nodege = this._db.conn.collection(this._class);
+    await ne.drop().catch((e: Error) => console.log(`Dropping collection ${this._class} failed... `, e.message));
   }
 
 }
