@@ -1,6 +1,7 @@
 import { Entity } from "./entity";
 import { Uuid } from "../../types/baseTypes";
-import { createQuery, getQuery, updateQuery, deleteQuery, upsertQuery } from "../queries/entityQ";
+import { getQuery } from "../queries/entityQ";
+import { createQuery, updateQuery, deleteQuery, upsertQuery } from "../queries/baseDocQ";
 import { errLog, errSig } from "../../helpers/error";
 import { Nodege } from "../../types";
 
@@ -9,9 +10,18 @@ import { Nodege } from "../../types";
  */
 export class BaseDoc extends Entity {
 
-  //------------------------------------------------------------
-  //                 CREATE / UPDATE / DELETE
-  //------------------------------------------------------------
+  //============================================================
+  //=                          INFO
+  //============================================================
+
+  static async getIndexes() {
+    await this.ready();
+    return await this._db.conn.collection(this.Class).indexes();
+  }
+
+  //============================================================
+  //=                 CREATE / UPDATE / DELETE
+  //============================================================
 
   /**
    * 
@@ -48,7 +58,7 @@ export class BaseDoc extends Entity {
    */
   static async update<T extends BaseDoc, D extends {}>(uuid: Uuid, newData: D): Promise<T> {
     // if ( !newData || Object.keys(newData).length === 0 ) {
-    //   throw new Error("newData must be valid object");
+    //   throw new Error("newData must be valid, non-empty object");
     // }
     await this.ready();
     const query = updateQuery(this._coll, uuid, newData);
@@ -94,3 +104,4 @@ export class BaseDoc extends Entity {
   }
 
 }
+

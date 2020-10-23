@@ -10,28 +10,25 @@ export type HyperReturn = [HyperEdge3, HyperErrors];
 /**
  * Information we need in order to create a hyperedge
  *
- * @description no implicit node creation!
- *
  * @property {string} fromKey Key to lookup _fromNode
  * @property {string} infoKey Key to lookup _infoNode
  * @property {string} toKey Key to lookup _toNode
  * @property {object} nodeData features to be stored in the Hyperedge itself
  * @property {object} edgeData will be deconstructed into separate edge feature vectors
  *
- * @todo making all properties optional is **nonsense** but required if we want to override the base method's `create` method
+ * @description we do *not* need _features for _from & _to edges, since those are just
+ *              the expanded version of a "normal" edge. The info edge however is the 
+ *              normalized version of multiple payload entries of the original edge
+ *              (e.g. mutliple ratings from the same scale node), so here we "transport"
+ *              the information
  */
 export interface HE3Params {
   fromNode: ArangoNode;
   infoNode: ArangoNode;
   toNode: ArangoNode;
   nodeFeatures: {};
-
-  /**
-   * @todo do we need edgeFeatures for all Edges ??
-   */
   infoFeatures: {};
-  // fromFeatures: {};
-  // toFeatures: {};
+  // infoUnique: boolean;
 }
 
 /**
@@ -64,7 +61,9 @@ export interface HE3Params {
  * @description A hyperedge does not have it's own _feature vector,
  *              otherwise it would need a collection / table as well,
  *              and we want it to be a purely logical structure.
- *
+ * 
+ * @description we do not implicitly create nodes, except for the internal "hyper" node.
+ * 
  * @todo retrieving from a hyperedge should be handled via a mixin...
  *
  * @todo What's a good threshold of abstraction? Let's think about it in terms of transactions:
@@ -82,8 +81,6 @@ export interface HE3Params {
  * - Is a hyper-edge responsible for node creation? -> NO
  *    -> so we roll-back manually??
  * - Is a hyper-edge responsible for edge creation? -> YES
- *
- * @todo review the literature whether this structure makes actual sense...
  *
  */
 export class HyperEdge3 extends Entity {
@@ -178,63 +175,65 @@ export class HyperEdge3 extends Entity {
     hyper._fromNode = params.fromNode;
     hyper._infoNode = params.infoNode;
     hyper._toNode = params.toNode;
-    // console.log('HYPER HYPER: ', this.HyperNode);
-
 
     /**
-     * this means all hyper-nodes need to have `uniqueAttr` defined...
+     * `upsert` means all hyper-nodes are required to have `uniqueAttr` set
      */
-    hyper._hyperNode = <ArangoNode>(
-      await this.HyperNode.upsert(params.nodeFeatures).catch((e: Error) => {
+    hyper._hyperNode = <ArangoNode>await this.HyperNode.upsert(params.nodeFeatures)
+      .catch((e: Error) => {
         errors.push('hyper NODE edge creation failed...', e.message);
         return null;
-      })
-    );
+      });
 
-    let fromEdge = <ArangoEdge>(
-      await this.fromEdgeKlass.byNodes(
-        hyper._fromNode._id,
-        hyper._hyperNode._id
-      )
-    );
+    let fromEdge = <ArangoEdge>await this.fromEdgeKlass.byNodes(hyper._fromNode._id, hyper._hyperNode._id);
+    // console.debug('HE FROM edge:', fromEdge, hyper._fromNode._id, hyper._hyperNode._id);
+
     if (!fromEdge) {
       fromEdge = <ArangoEdge>await this.fromEdgeKlass.create<BaseEdgeEntity>({
         _from: hyper._fromNode._id,
         _to: hyper._hyperNode._id,
-      }).catch((e: Error) => {
-        errors.push('hyper FROM edge creation failed...', e.message);
-        return null;
-      });
+      })
+        .catch((e: Error) => {
+          // console.debug('HE from edge CREATION failed:', hyper._fromNode._id, hyper._hyperNode._id, e.message);
+          errors.push('hyper from edge CREATION failed...', hyper._fromNode._id, hyper._hyperNode._id, e.message);
+          return null;
+        });
     }
 
-    let infoEdge = <ArangoEdge>(
-      await this.infoEdgeKlass.byNodes(
-        hyper._infoNode._id,
-        hyper._hyperNode._id
-      )
-    );
+    /**
+     * if we DON'T have a unique [_from, _to], we want to create an additional edge anyways
+     */
+    let infoEdge = await this.infoEdgeKlass.uniqueIndex() 
+      ? <ArangoEdge>await this.infoEdgeKlass.byNodes(hyper._infoNode._id, hyper._hyperNode._id)
+      : null;
+
+    // console.debug('HE INFO edge:', infoEdge, hyper._infoNode._id, hyper._hyperNode._id);
+
     if (!infoEdge) {
       infoEdge = <ArangoEdge>await this.infoEdgeKlass.create<BaseEdgeEntity>({
         _from: hyper._infoNode._id,
         _to: hyper._hyperNode._id,
         ...params.infoFeatures,
-      }).catch((e: Error) => {
-        errors.push('hyper INFO edge creation failed...', e.message);
-        return null;
-      });
+      })
+        .catch((e: Error) => {
+          errors.push('hyper INFO edge creation failed...', e.message);
+          return null;
+        });
     }
 
-    let toEdge = <ArangoEdge>(
-      await this.toEdgeKlass.byNodes(hyper._hyperNode._id, hyper._toNode._id)
-    );
+    let toEdge = <ArangoEdge>await this.toEdgeKlass.byNodes(hyper._hyperNode._id, hyper._toNode._id);
+    // console.debug('HE TO edge:', toEdge, hyper._hyperNode._id, hyper._toNode._id);
+
     if (!toEdge) {
       toEdge = <ArangoEdge>await this.toEdgeKlass.create<BaseEdgeEntity>({
         _from: hyper._hyperNode._id,
         _to: hyper._toNode._id,
-      }).catch((e: Error) => {
-        errors.push('hyper TO edge creation failed...', e.message);
-        return null;
-      });
+      })
+        .catch((e: Error) => {
+          // console.debug('HE TO edge CREATION failed:', hyper._hyperNode._id, hyper._toNode._id, e.message);
+          errors.push('hyper TO edge creation failed...', hyper._hyperNode._id, hyper._toNode._id, e.message);
+          return null;
+        });
     }
 
     hyper._fromEdge = fromEdge;
