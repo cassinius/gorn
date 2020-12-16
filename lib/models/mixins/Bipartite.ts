@@ -1,7 +1,12 @@
 import { plainToClass } from "class-transformer";
 import { ArangoNode } from "../base";
-import { getPeerQuery, findPeerQuery, getOtherQuery, findOtherQuery } from "../queries/bipartiteQ";
-import { BaseEntity } from "../../types/baseTypes";
+import {
+  getPeerQuery,
+  findPeerQuery,
+  getOtherQuery,
+  findOtherQuery,
+} from "../queries/bipartiteQ";
+import { ArangoDoc } from "../../types/baseTypes";
 import { HasOtherStruct, PeerStruct } from "../../types/queryTypes";
 /**
  * @todo refactor, who needs that many Cfgs...?
@@ -29,7 +34,7 @@ const viaStruct: ViaStruct = {};
  * @todo generalize Jobs4Skills - OR - derive type from caller
  */
 export abstract class BipartiteNode extends ArangoNode {
-  static async getOther(cfg: BipGetOtherCfg): Promise<BaseEntity[]> {
+  static async getOther(cfg: BipGetOtherCfg): Promise<ArangoDoc[]> {
     return null;
   }
 
@@ -62,7 +67,7 @@ export function Bipartite<T extends typeof ArangoNode>(
   if (viaStruct[Base.Class] == null) {
     viaStruct[Base.Class] = {};
   }
-  config.conns.forEach(conn => {
+  config.conns.forEach((conn) => {
     if (viaStruct[Base.Class][conn.other] == null) {
       viaStruct[Base.Class][conn.other] = conn.via;
     }
@@ -77,14 +82,19 @@ export function Bipartite<T extends typeof ArangoNode>(
      *             ONE specfic side of the bi-partite graph
      * - actual dist will be: 2 * dist - 1
      */
-    static async getOther(cfg: BipGetOtherCfg): Promise<BaseEntity[]> {
+    static async getOther(cfg: BipGetOtherCfg): Promise<ArangoDoc[]> {
       await this.ready();
 
       const dist = cfg.dist ?? 1;
       const must = cfg.must ?? true;
-      const query = getOtherQuery(this._coll, cfg.edges, cfg.uuids, 2 * dist - 1);
+      const query = getOtherQuery(
+        this._coll,
+        cfg.edges,
+        cfg.uuids,
+        2 * dist - 1
+      );
       const others: unknown[] = await this.execQuery(query);
-      return plainToClass(BaseEntity, others);
+      return plainToClass(ArangoDoc, others);
     }
 
     /**
@@ -102,11 +112,17 @@ export function Bipartite<T extends typeof ArangoNode>(
         throw "Could not find edge type to traverse.";
       }
 
-      const query = getPeerQuery(this._coll, via, cfg.uuids, this.PICK_ATT, 2 * dist);
+      const query = getPeerQuery(
+        this._coll,
+        via,
+        cfg.uuids,
+        this.PICK_ATT,
+        2 * dist
+      );
       // console.debug(query);
 
       const peers: any[] = await this.execQuery(query);
-      return peers.map(ps => ({
+      return peers.map((ps) => ({
         edges: ps.edges,
         path: ps.path,
       }));
@@ -119,9 +135,15 @@ export function Bipartite<T extends typeof ArangoNode>(
      *       -> here we want to get entities of the 'other' group
      */
     static async findOther(cfg: BipFindOtherCfg): Promise<HasOtherStruct> {
-      const query = await findOtherQuery(this.VIEW, this.SEARCH_FLD, cfg.edges, cfg.search, this.PICK_ATT);
+      const query = await findOtherQuery(
+        this.VIEW,
+        this.SEARCH_FLD,
+        cfg.edges,
+        cfg.search,
+        this.PICK_ATT
+      );
       const otherStruct = await this.execQuery(query);
-      return otherStruct.map(ho => ({
+      return otherStruct.map((ho) => ({
         source: ho.source,
         targets: ho.targets,
       }));
@@ -135,11 +157,17 @@ export function Bipartite<T extends typeof ArangoNode>(
       if (!via) {
         throw "Could not find existing edge type to traverse.";
       }
-      const query = await findPeerQuery(this.VIEW, this.SEARCH_FLD, via, cfg.search, this.PICK_ATT);
+      const query = await findPeerQuery(
+        this.VIEW,
+        this.SEARCH_FLD,
+        via,
+        cfg.search,
+        this.PICK_ATT
+      );
       // console.debug(query);
 
       const peerJobs = await this.execQuery(query);
-      return peerJobs.map(ps => ({
+      return peerJobs.map((ps) => ({
         edges: ps.edges,
         path: ps.path,
       }));

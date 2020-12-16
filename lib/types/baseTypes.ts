@@ -6,7 +6,7 @@ export type Uuid = string;
 export const BaseCollections = {}
 
 /**
- * All Arango entities have these properties
+ * All Arango documents have these properties
  * We can internally use them when calling DB
  * operations on objects, and wont return them
  * to the calling API.
@@ -16,26 +16,16 @@ export const BaseCollections = {}
  * DB instances in a cluster, and will be returned
  * to the calling API.
  */
-export interface BaseEntity {
+export interface ArangoDoc {
   _id?: string;
   _key?: string;
   _rev?: string;
+  _from?: string;
+  _to?: string
 }
 
 /**
  * For type-checking at runtime, which cannot
  * be done via an interface (not elegant...)
  */
-export class BaseEntity {}
-
-/**
- * @todo if we call this Base-"Edge"-Entity, why not
- *       call the other one Base-"Node"-Entity... ??
- *       whatever...
- */
-export interface BaseEdgeEntity extends BaseEntity {
-  _from: string;
-  _to: string;
-}
-
-export class BaseEdgeEntity {}
+export class ArangoDoc {}

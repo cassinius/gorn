@@ -1,7 +1,11 @@
 import { Graph } from "arangojs/graph";
 import { ArangoSearchView } from "arangojs/view";
-import { DocumentCollection, EdgeCollection, CollectionType } from "arangojs/collection";
-import { CollType, ArangoDBStruct, emptyDB, ArangoUnit } from "../types/arangoTypes";
+import {
+  DocumentCollection,
+  EdgeCollection,
+  CollectionType,
+} from "arangojs/collection";
+import { CollType, ArangoDBStruct, emptyDB } from "../types/arangoTypes";
 import { getArangoDBConn } from "./arangoConn";
 import { errLog, errReq, errSig, errSilent } from "../helpers/error";
 
@@ -21,10 +25,12 @@ async function insureEdges(ref: EdgeCollection) {
   if (await ref.exists()) {
     console.log(`Edges '${ref.name}' already exists.`);
   } else {
-    await ref.create({
-      type: CollectionType.EDGE_COLLECTION,
-      keyOptions: { type: "uuid" }
-    }).catch(errSig);
+    await ref
+      .create({
+        type: CollectionType.EDGE_COLLECTION,
+        keyOptions: { type: "uuid" },
+      })
+      .catch(errSig);
     console.log(`Created Edges ${ref.name}`);
   }
 }
@@ -34,6 +40,7 @@ async function insureGraph(ref: Graph) {
     console.log(`Graph '${ref.name}' already exists.`);
   } else {
     await ref.create([]).catch(errSig);
+
     console.log(`Created Graph ${ref.name}`);
   }
 }

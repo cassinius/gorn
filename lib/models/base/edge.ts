@@ -1,13 +1,15 @@
 import { EdgeCollection } from 'arangojs/collection';
 import { BaseDoc } from "./basedoc";
 import { CollType } from '../../types/arangoTypes';
-import { EdgeEntity } from './entity';
 import { byNodesQuery } from '../queries/edgeQ';
 
 /**
  * 
  */
 export class ArangoEdge extends BaseDoc {
+  _from!: string;
+  _to!: string;
+
   public static _type = CollType.EDGE;
   protected static _coll: EdgeCollection;
 
@@ -23,7 +25,7 @@ export class ArangoEdge extends BaseDoc {
   /**
    * @todo test !!
    */
-  static async byNodes<T extends EdgeEntity>(from: string, to: string): Promise<T> {
+  static async byNodes<T extends BaseDoc>(from: string, to: string): Promise<T> {
     await this.ready();
     const query = byNodesQuery(this._coll, from, to);
     const items = await this.execQuery(query);    

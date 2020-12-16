@@ -1,8 +1,9 @@
 import { DocumentCollection } from "arangojs/collection";
-import { BaseEdgeEntity, CollType } from "../../types";
+import { CollType } from "../../types";
 import { Entity } from "./entity";
 import { ArangoNode } from "./node";
 import { ArangoEdge } from "./edge";
+import { BaseDoc } from "./basedoc";
 
 type HyperErrors = string[];
 export type HyperReturn = [HyperEdge3, HyperErrors];
@@ -189,7 +190,7 @@ export class HyperEdge3 extends Entity {
     // console.debug('HE FROM edge:', fromEdge, hyper._fromNode._id, hyper._hyperNode._id);
 
     if (!fromEdge) {
-      fromEdge = <ArangoEdge>await this.fromEdgeKlass.create<BaseEdgeEntity>({
+      fromEdge = <ArangoEdge>await this.fromEdgeKlass.create<Entity>({
         _from: hyper._fromNode._id,
         _to: hyper._hyperNode._id,
       })
@@ -210,7 +211,7 @@ export class HyperEdge3 extends Entity {
     // console.debug('HE INFO edge:', infoEdge, hyper._infoNode._id, hyper._hyperNode._id);
 
     if (!infoEdge) {
-      infoEdge = <ArangoEdge>await this.infoEdgeKlass.create<BaseEdgeEntity>({
+      infoEdge = <ArangoEdge>await this.infoEdgeKlass.create<Entity>({
         _from: hyper._infoNode._id,
         _to: hyper._hyperNode._id,
         ...params.infoFeatures,
@@ -225,7 +226,7 @@ export class HyperEdge3 extends Entity {
     // console.debug('HE TO edge:', toEdge, hyper._hyperNode._id, hyper._toNode._id);
 
     if (!toEdge) {
-      toEdge = <ArangoEdge>await this.toEdgeKlass.create<BaseEdgeEntity>({
+      toEdge = <ArangoEdge>await this.toEdgeKlass.create<Entity>({
         _from: hyper._hyperNode._id,
         _to: hyper._toNode._id,
       })

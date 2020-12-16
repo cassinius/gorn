@@ -1,31 +1,27 @@
-import { ArangoSearchView } from "arangojs/view";
+import { ArangoDoc } from "../../types/baseTypes";
 import { ArangoDBStruct, CollType, Nodege } from "../../types/arangoTypes";
-import { BaseEdgeEntity, BaseEntity } from "../../types/baseTypes";
-import { getQuery, findQuery, byFieldQuery, allQuery, forceViewQuery } from "../queries/entityQ";
 import { getDBStruct } from "../../db/instantiateDB";
 
-
 /**
- * FOR ALL STATIC METHODS
+ * CONCERNING ALL STATIC METHODS
  *
  * We use `this` to refer to the class object
  * the method was called upon.. e.g. `User` or `Friendship`.
- * 
+ *
  * @description Calling `Entity` would result in calling the
  * base-class method or instantiate an object from the
  * base-class, not the dynamic sub-class
- * 
+ *
  * @property {string} _view a string representation of the DB Search View
  * @property {ArangoSearchView} _searchView actual search view object / handle
  *
- * @todo this class should only represent `Nodes` and `Edges`
- *       -> specify so via Types
  */
-export class Entity implements BaseEntity {
-  _id: string;
-  _key: string;
-  _rev: string;
-  protected _features: {};
+export class Entity implements ArangoDoc {
+  _id?: string;
+  _key?: string;
+  _rev?: string;
+  _from?: string;
+  _to?: string;
 
   //=====================================================
   //=         POLYMORPHIC (STATIC) ATTRIBUTES
@@ -39,70 +35,36 @@ export class Entity implements BaseEntity {
   protected static _db: ArangoDBStruct;
 
   /**
+   * @description type of DB object
+   * @example `Node`, `Edge`, `Graph` or `View`
+   */
+  protected static _type: CollType;
+
+  /**
+   * Collection - the reference to the actual DB handle
+   *
+   * All objects have one - also Graphs and SearchViews
+   *
    * @description the DB unit holding items of `this` type
    */
   protected static _coll: Nodege;
 
   /**
-   * @description type of DB object
-   * @example `Node`, `Edge`, `Graph` or `View`
-   * @todo `Entity` should only refer to Nodes or Edges,
-   *       its functionality does not make sense for others...!!
-   */
-  protected static _type: CollType;
-
-  /**
-   * @description which search view to query against
-   * @example in ArangoDB, this is an `ArangoSearchView` handle
-   */
-  protected static _searchView: ArangoSearchView;
-
-  /**
-   * @todo ideally the following properties should all be type constrained,
+   *
+   * Textual description of the collection handle
+   *
+   * All objects have one - just like _coll
+   *
+   * @todo ideally the following properties should all be type-constrained,
    *       - but in a flexible way
    *       - which means we'd need polymorphic enums !?
    *       - e.g. "must be member of an 'Attr' enum or such.."
    */
   protected static _class: string;
 
-  /**
-   * @description a string representation of the DB Search View
-   * @example in ArangoDB, this gets translated to an `ArangoSearchView` handle
-   */
-  protected static _view: string;
-
-  /**
-   * @description the attribute which identifies a document
-   * @example `title` , `preferredLabel`, etc.
-   */
-  protected static _labelField: string;
-
-  /**
-   * @description the attributes to query against in a `search` operation
-   */
-  protected static _searchAttr: string[];
-
-  /**
-   * @description attributes to pick in case we don't return the whole object
-   */
-  protected static _pickAttrs: string[];
-
-  /**
-   * @description attributes by which an object is identified as unique during `upsert`
-   */
-  protected static _uniqueAttrs: string[];
-
   //=====================================================
   //=              GETTERS (dynamic *this*)
   //=====================================================
-
-  public get features(): any {
-    return this._features;
-  }
-
-  public set features(f) {
-    this._features = f;
-  }
 
   /**
    * @example "inodisDB", "lemontigerDB", ...
@@ -113,8 +75,7 @@ export class Entity implements BaseEntity {
   }
 
   /**
-   * @example "nodes", "edges", ...
-   * @todo should be a `Collection`.. ??
+   * @example "nodes", "edges",
    */
   public static get Type(): string {
     return this._type;
@@ -128,211 +89,19 @@ export class Entity implements BaseEntity {
     return this._class;
   }
 
-  /**
-   * This is only here in order to search for
-   * and set a valid ArangoSearch view at runtime
-   * @example 'skillsView', 'jobsView', etc.
-   */
-  public static get viewStr(): string {
-    return this._view;
-  }
-
-  /**
-   * The actual ArangoSearchView
-   * 
-   * @description anything that has features must be searchable...
-   */
-  public static get VIEW(): ArangoSearchView {
-    return this._searchView;
-  }
-
-  /**
-   * Returns fields to search in (ArangoSearch / FT etc.)
-   */
-  public static get SEARCH_FLD(): string[] {
-    return this._searchAttr;
-  }
-
-  /**
-   * Returns the model's label field
-   * @example 'title', 'preferredLabel', etc.
-   */
-  public static get LABEL_FLD(): string {
-    return this._labelField;
-  }
-
-  /**
-   * Returns an array of properties to collect in query results
-   * @example ['title', 'concepts'] or ['preferredLabel', 'altLabels']
-   */
-  public static get PICK_ATT(): string[] {
-    return this._pickAttrs;
-  }
-
-  /**
-   * Returns an array of properties to check uniqueness against in `upsert` operations
-   */
-  public static get UNIQUE_ATT(): string[] {
-    return this._uniqueAttrs;
-  }
-
-
-  //=====================================================
-  //=                    BASICS
-  //=====================================================
-
-  static async count(): Promise<number> {
-    await this.ready();
-    return await (await this._coll.count()).count;
-  }
-
-  /**
-   * @todo test HARD LIMIT
-   */
-  static async all<T extends Entity>(): Promise<T[]> {
-    await this.ready();
-    const results = await this.execQuery(allQuery(this._coll));
-    return results.map(res => this.fromArangoStruct(res));
-  }
-
-  /**
-   * 
-   */
-  static async forceViewSync(): Promise<void> {
-    await this.ready();
-    await this.execQuery(forceViewQuery(this.VIEW));
-    return null;
-  }
-
-  //=====================================================
-  //=                   GET-> BY FIELD
-  //=====================================================
-
-  /**
-   * 
-   * @param label 
-   */
-  static async byLabel<T extends Entity>(label: string): Promise<T> {
-    return await this.byField(this.LABEL_FLD, label);
-  }
-
-  /**
-   * 
-   * @param field 
-   * @param value 
-   */
-  static async byField<T extends Entity>(field: string, value: any): Promise<T> {
-    await this.ready();
-    const query = byFieldQuery(this._coll, field, value);
-    const items = await this.execQuery(query);
-    if (items == null || items[0] == null) {
-      return null;
-    }
-    return items[0] ? (this.fromArangoStruct(items[0]) as T) : null;
-  }
-
-
-  //=====================================================
-  //=                  GET -> BY _ID
-  //=====================================================
-
-  /**
-   *
-   * @param uuid {string}
-   */
-  static async getOne<T extends Entity>(uuid: string): Promise<T> {
-    await this.ready();
-    const query = getQuery(this._coll, [uuid], 1);
-    const results: any[] = await this.execQuery(query);
-    return results[0] ? (this.fromArangoStruct(results[0]) as T) : null;
-  }
-
-  /**
-   *
-   * @param uuids {string[]}
-   * @param limit {number}
-   */
-  static async getMany<T extends Entity>(uuids: string[], limit: number): Promise<T[]> {
-    await this.ready();
-    const query = getQuery(this._coll, uuids, limit);
-    const results: any[] = await this.execQuery(query);
-    return results.map(res => this.fromArangoStruct(res));
-  }
-
-  //=====================================================
-  //=                 FIND -> BY SEARCH
-  //=====================================================
-
-  /**
-   *
-   * @param search {string} search string
-   */
-  static async findOne<T extends Entity>(search: string): Promise<T> {
-    await this.ready();
-    const query = findQuery(this.VIEW, this.SEARCH_FLD, search, 1);
-
-    // console.debug(query);
-
-    const items = await this.execQuery(query);
-    
-    // console.debug(items);
-
-    return items[0] ? (this.fromArangoStruct(items[0]) as T) : null;
-  }
-
-  /**
-   *
-   * @param search {string} search string
-   * @param limit {number} result lenth limit
-   */
-  static async findMany<T extends Entity>(search: string, limit: number): Promise<T[]> {
-    await this.ready();
-    const query = findQuery(this.VIEW, this.SEARCH_FLD, search, limit);
-    const results: any[] = await this.execQuery(query);
-    return results.map(res => this.fromArangoStruct(res));
-  }
-
   //=====================================================
   //=                JUST ENGINEERING...
   //=====================================================
 
   /**
-   * The <T> allows us to at least correctly 
-   * interpret the result from the outside..
-   */
-  toJson<T>(): T {
-    return this.features as T;
-  }
-
-  /**
-   * We include the (uuid) key in our internal
-   * entity representation or consumption by the API
-   *
-   * @todo do we need the generics? it seems the `new this()`
-   *       determines the return value anyways, when called
-   *       via `this.fromArangoStruct`..
-   */
-  static fromArangoStruct<T extends Entity>(ae: BaseEntity): T {
-    const entity = new this() as T;
-    const { _id, _rev, ...restOfFeatures } = ae;
-    entity._id = _id;
-    entity._rev = _rev;
-    entity._key = ae._key;
-    entity._features = restOfFeatures;
-    return entity;
-  }
-
-  /**
    * Ensures the ._db & ._coll members are set correctly
    * before attempting any DB operations
-   * 
+   *
    * @todo this._db should be the instantiated & valid db struct
    *       for whatever application...
    */
   static async ready() {
     this._db = await getDBStruct(this.DB);
-    // set the search view for 'this'
-    this._searchView = this._db.views[this.viewStr];
     // set the DB collection for 'this'
     if (!this._coll && this.Type && this.Class) {
       this._coll = this._db[this.Type][this.Class];
@@ -352,32 +121,13 @@ export class Entity implements BaseEntity {
     // console.debug('QUERY: ', query);
 
     const cursor = await this._db.conn.query(query);
-    
+
     // console.debug('CURSOR: ', cursor);
-    
+
     if (cursor == null) {
       // throw new Error("ArangoDB returned NULL cursor...");
       return null;
     }
     return await cursor.all();
-  }
-}
-
-export class EdgeEntity extends Entity implements BaseEdgeEntity {
-  _from: string;
-  _to: string;
-
-  /**
-   * 
-   * @todo analyze and remove this `as unknown as T` nonsense !!
-   */
-  static fromArangoStruct<T extends Entity>(ae: EdgeEntity): T {
-    const entity = new this() as unknown as T;
-    const { _id, _rev, _from, _to, ...rest } = ae;
-    entity._id = _id;
-    entity._rev = _rev;
-    entity._key = ae._key;
-    entity.features = rest;
-    return entity;
   }
 }

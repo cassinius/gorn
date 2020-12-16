@@ -1,4 +1,4 @@
-import { Uuid, BaseEntity } from "./baseTypes";
+import { Uuid, ArangoDoc } from "./baseTypes";
 
 //-----------------------------------------
 //           QUERY OUTPUT TYPES
@@ -21,8 +21,8 @@ export interface PeerStructEntry {
 export type PeerStruct = PeerStructEntry[];
 
 export interface HasOtherEntry {
-  source: BaseEntity;
-  targets: BaseEntity[];
+  source: ArangoDoc;
+  targets: ArangoDoc[];
 }
 
 export type HasOtherStruct = HasOtherEntry[];
