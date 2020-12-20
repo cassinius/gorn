@@ -10,8 +10,8 @@ const DEFAULT_LIMIT = 30;
  *
  * @param coll
  */
-export function allQuery(coll: Nodege) {
-  return aql`FOR d IN ${coll} LIMIT ${DEFAULT_LIMIT} RETURN d`;
+export function allQuery(coll: Nodege, limit = DEFAULT_LIMIT) {
+  return aql`FOR d IN ${coll} LIMIT ${limit} RETURN d`;
 }
 
 export function forceViewQuery(view: ArangoSearchView) {

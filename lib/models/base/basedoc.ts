@@ -403,4 +403,42 @@ export class BaseDoc extends Entity {
       this._coll = this._db[this.Type][this.Class];
     }
   }
+
+  //=====================================================
+  //=                    FILTERS
+  //=====================================================
+
+  /**
+   * Export selected BaseDoc[] to CSV string
+   *
+   * @description
+   *
+   * @todo typing...
+   */
+  // static async toCsv<T extends BaseDoc>(
+  //   docs: T[],
+  //   fields: string[]
+  // ): Promise<string> {
+  //   const allDocs = await this._all();
+  //   console.log(allDocs[0]);
+
+  //   const csvStr = "";
+
+  //   return csvStr;
+  // }
+
+  //=====================================================
+  //=                    HELPERS
+  //=====================================================
+
+  /**
+   * REALLY returns ALL entries
+   *
+   * @todo test
+   */
+  private static async _all(): Promise<BaseDoc[]> {
+    await this.ready();
+    const query = allQuery(this._coll, Number.POSITIVE_INFINITY);
+    return await this.execQuery(query);
+  }
 }
